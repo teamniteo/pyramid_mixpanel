@@ -1,4 +1,6 @@
-## Integrate your [Pyramid](https://trypyramid.com) app with [Mixpanel](https://mixpanel.com/) to learn who your users are and how they are using your app.
+## [Work-in-Progress] Integrate your [Pyramid](https://trypyramid.com) app with [Mixpanel](https://mixpanel.com/) to learn who your users are and how they are using your app.
+
+> **Warning: This project is currently in alpha. Stable release planned in August 2019. If you're curious about the progress, ping `zupo` on [irc.freenode.net](https://webchat.freenode.net/?channels=niteo).**
 
 <p align="center">
   <img height="200" src="https://github.com/niteoweb/pyramid_mixpanel/blob/master/header.jpg?raw=true" />
