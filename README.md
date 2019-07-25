@@ -70,20 +70,19 @@ config.include("pyramid_mixpanel")
 # for local development and unit testing
 mixpanel.testing = true
 
-# tracking on a simple app without background processing
+# minimal configuration
 mixpanel.token = <TOKEN>
-mixpanel.consumer = pyramid_mixpanel.BufferedConsumer
 
 # enable support for querying Mixpanel data
 mixpanel.api_secret = <SECRET>
-
-# deferring sending of Mixpanel messages to a background task queue
-mixpanel.consumer = pyramid_mixpanel.QueuedConsumer
 
 # custom events and properties
 mixpanel.events = myapp.mixpanel.Events
 mixpanel.event_properties = myapp.mixpanel.EventProperties
 mixpanel.profile_properties = myapp.mixpanel.ProfileProperties
+
+# defer sending of Mixpanel messages to a background task queue
+mixpanel.consumer = myapp.mixpanel.QueuedConsumer
 ```
 
 For view code dealing with requests, a pre-configured `request.mixpanel`
@@ -130,3 +129,5 @@ A couple of projects that use pyramid_mixpanel in production:
 * [ ] 100% types coverage
 * [ ] custom Enums
 * [ ] configure background task to be scheduled
+* [ ] nicer error if dotted names are invalid
+* [ ] nicer error if user is not set

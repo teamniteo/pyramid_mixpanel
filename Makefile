@@ -55,7 +55,7 @@ filter = "."
 # additional arguments for pytest
 args = ""
 pytest_args = -k $(filter) $(args)
-coverage_args = --cov=pyramid_mixpanel --cov-branch --cov-report html --cov-report xml:cov.xml --cov-report term-missing --cov-fail-under=71
+coverage_args = --cov=pyramid_mixpanel --cov-branch --cov-report html --cov-report xml:cov.xml --cov-report term-missing --cov-fail-under=77
 
 .PHONY: unit
 unit: .installed
