@@ -1,16 +1,20 @@
 """Tests for Mixpanel tracking."""
 
-# from enum import Enum
+from dataclasses import dataclass
 from freezegun import freeze_time
+from pyramid_mixpanel import Event
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
 from pyramid_mixpanel import MixpanelTrack
 from pyramid_mixpanel import MockedConsumer
+from pyramid_mixpanel import ProfileMetaProperties
+from pyramid_mixpanel import ProfileProperties
+from pyramid_mixpanel import Property
 from pyramid_mixpanel import QueuedConsumer
 from unittest import mock
 
 # import mixpanel
-# import pytest
+import pytest
 
 
 def _make_user(distinct_id="distinct id"):
@@ -19,17 +23,245 @@ def _make_user(distinct_id="distinct id"):
     return user
 
 
-def test_init():
-    """Test initialization of MixpanelTrack class."""
+def test_init_consumers():
+    """Test initialization of Consumer."""
     user = _make_user()
 
     mixpanel = MixpanelTrack(user=user, settings={"mixpanel.token": "secret"})
     assert mixpanel.user == user
     assert mixpanel.api._consumer.__class__ == QueuedConsumer
 
-    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": "true"})
+    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
     assert mixpanel.user == user
     assert mixpanel.api._consumer.__class__ == MockedConsumer
+
+
+@dataclass(frozen=True)
+class FooEvents(Events):
+    foo: Event = Event("Foo")
+
+
+@dataclass(frozen=True)
+class BarEvents:
+    bar: Event = Event("Bar")
+
+
+def test_init_events():
+    """Test initialization of self.events."""
+    user = _make_user()
+
+    # default Events
+    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    assert mixpanel.events == Events()
+
+    # resolved from a dotted-name
+    mixpanel = MixpanelTrack(
+        user=user,
+        settings={
+            "mixpanel.testing": True,
+            "mixpanel.events": "pyramid_mixpanel.tests.test_track.FooEvents",
+        },
+    )
+    assert mixpanel.events == FooEvents()
+
+    # the resolved Events need to be based off of pyramid_mixpanel.Events
+    # to contain the events that this library expects
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={
+                "mixpanel.testing": True,
+                "mixpanel.events": "pyramid_mixpanel.tests.test_track.BarEvents",
+            },
+        )
+    assert (
+        str(exc.value)
+        == "class in dotted_name needs to be based on pyramid_mixpanel.Events"
+    )
+
+    # passing Events as an object is not (yet) supported
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={  # type: ignore
+                "mixpanel.testing": True,
+                "mixpanel.events": FooEvents(),
+            },
+        )
+    assert str(exc.value) == "dotted_name must be a string, but it is: FooEvents"
+
+
+class FooEventProperties(EventProperties):
+    foo: Property = Property("Foo")
+
+
+@dataclass(frozen=True)
+class BarEventProperties:
+    bar: Property = Property("Bar")
+
+
+def test_init_event_properties():
+    """Test initialization of self.event_properties."""
+    user = _make_user()
+
+    # default EventProperties
+    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    assert mixpanel.event_properties == EventProperties()
+
+    # resolved from a dotted-name
+    mixpanel = MixpanelTrack(
+        user=user,
+        settings={
+            "mixpanel.testing": True,
+            "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.FooEventProperties",
+        },
+    )
+    assert mixpanel.event_properties == FooEventProperties()
+
+    # the resolved EventProperties need to be based off of
+    # pyramid_mixpanel.EventProperties to contain the event properties
+    # that this library expects
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={
+                "mixpanel.testing": True,
+                "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.BarEventProperties",
+            },
+        )
+    assert (
+        str(exc.value)
+        == "class in dotted_name needs to be based on pyramid_mixpanel.EventProperties"
+    )
+
+    # passing EventProperties as an object is not (yet) supported
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={  # type: ignore
+                "mixpanel.testing": True,
+                "mixpanel.event_properties": FooEventProperties(),
+            },
+        )
+    assert (
+        str(exc.value) == "dotted_name must be a string, but it is: FooEventProperties"
+    )
+
+
+class FooProfileProperties(ProfileProperties):
+    foo: Property = Property("Foo")
+
+
+@dataclass(frozen=True)
+class BarProfileProperties:
+    bar: Property = Property("Bar")
+
+
+def test_init_profile_properties():
+    """Test initialization of self.profile_properties."""
+    user = _make_user()
+
+    # default ProfileProperties
+    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    assert mixpanel.profile_properties == ProfileProperties()
+
+    # resolved from a dotted-name
+    mixpanel = MixpanelTrack(
+        user=user,
+        settings={
+            "mixpanel.testing": True,
+            "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.FooProfileProperties",
+        },
+    )
+    assert mixpanel.profile_properties == FooProfileProperties()
+
+    # the resolved ProfileProperties need to be based off of
+    # pyramid_mixpanel.ProfileProperties to contain the profile properties
+    # that this library expects
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={
+                "mixpanel.testing": True,
+                "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.BarProfileProperties",
+            },
+        )
+    assert (
+        str(exc.value)
+        == "class in dotted_name needs to be based on pyramid_mixpanel.ProfileProperties"
+    )
+
+    # passing ProfileProperties as an object is not (yet) supported
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={  # type: ignore
+                "mixpanel.testing": True,
+                "mixpanel.profile_properties": FooProfileProperties(),
+            },
+        )
+    assert (
+        str(exc.value)
+        == "dotted_name must be a string, but it is: FooProfileProperties"
+    )
+
+
+class FooProfileMetaProperties(ProfileMetaProperties):
+    foo: Property = Property("Foo")
+
+
+@dataclass(frozen=True)
+class BarProfileMetaProperties:
+    bar: Property = Property("Bar")
+
+
+def test_init_profile_meta_properties():
+    """Test initialization of self.profile_meta_properties."""
+    user = _make_user()
+
+    # default ProfileMetaProperties
+    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    assert mixpanel.profile_meta_properties == ProfileMetaProperties()
+
+    # resolved from a dotted-name
+    mixpanel = MixpanelTrack(
+        user=user,
+        settings={
+            "mixpanel.testing": True,
+            "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.FooProfileMetaProperties",
+        },
+    )
+    assert mixpanel.profile_meta_properties == FooProfileMetaProperties()
+
+    # the resolved ProfileMetaProperties need to be based off of
+    # pyramid_mixpanel.ProfileMetaProperties to contain the profile properties
+    # that this library expects
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={
+                "mixpanel.testing": True,
+                "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.BarProfileMetaProperties",
+            },
+        )
+    assert (
+        str(exc.value)
+        == "class in dotted_name needs to be based on pyramid_mixpanel.ProfileMetaProperties"
+    )
+
+    # passing ProfileMetaProperties as an object is not (yet) supported
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            user=user,
+            settings={  # type: ignore
+                "mixpanel.testing": True,
+                "mixpanel.profile_meta_properties": FooProfileMetaProperties(),
+            },
+        )
+    assert (
+        str(exc.value)
+        == "dotted_name must be a string, but it is: FooProfileMetaProperties"
+    )
 
 
 @freeze_time("2018-01-01")

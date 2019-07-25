@@ -123,8 +123,8 @@ A couple of projects that use pyramid_mixpanel in production:
 * [ ] study https://pypi.org/project/pyramid_mixpanel/0.1.65/
 * [ ] specify assumptions: request has a .user object that has .email, .created, .state and .distinct_id
 * [ ] stuctlog should be optional
-* [ ] study https://github.com/mixpanel/mixpanel-python/blob/master/demo/subprocess_consumer.py
-* [ ] CircleCI
+* [x] study https://github.com/mixpanel/mixpanel-python/blob/master/demo/subprocess_consumer.py
+* [x] CircleCI
 * [ ] 100% test coverage
 * [ ] 100% types coverage
 * [ ] custom Enums

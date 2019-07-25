@@ -196,10 +196,15 @@ class MixpanelTrack:
             return Events()
         if not isinstance(dotted_name, str):
             raise ValueError(
-                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
+                f"dotted_name must be a string, but it is: {dotted_name.__class__.__name__}"
             )
         else:
-            return DottedNameResolver().resolve(dotted_name)
+            resolved = DottedNameResolver().resolve(dotted_name)
+            if not issubclass(resolved, Events):
+                raise ValueError(
+                    f"class in dotted_name needs to be based on pyramid_mixpanel.Events"
+                )
+            return resolved()
 
     @staticmethod
     def _resolve_event_properties(
@@ -209,10 +214,15 @@ class MixpanelTrack:
             return EventProperties()
         if not isinstance(dotted_name, str):
             raise ValueError(
-                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
+                f"dotted_name must be a string, but it is: {dotted_name.__class__.__name__}"
             )
         else:
-            return DottedNameResolver().resolve(dotted_name)
+            resolved = DottedNameResolver().resolve(dotted_name)
+            if not issubclass(resolved, EventProperties):
+                raise ValueError(
+                    f"class in dotted_name needs to be based on pyramid_mixpanel.EventProperties"
+                )
+            return resolved()
 
     @staticmethod
     def _resolve_profile_properties(
@@ -222,10 +232,15 @@ class MixpanelTrack:
             return ProfileProperties()
         if not isinstance(dotted_name, str):
             raise ValueError(
-                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
+                f"dotted_name must be a string, but it is: {dotted_name.__class__.__name__}"
             )
         else:
-            return DottedNameResolver().resolve(dotted_name)
+            resolved = DottedNameResolver().resolve(dotted_name)
+            if not issubclass(resolved, ProfileProperties):
+                raise ValueError(
+                    f"class in dotted_name needs to be based on pyramid_mixpanel.ProfileProperties"
+                )
+            return resolved()
 
     @staticmethod
     def _resolve_profile_meta_properties(
@@ -235,10 +250,15 @@ class MixpanelTrack:
             return ProfileMetaProperties()
         if not isinstance(dotted_name, str):
             raise ValueError(
-                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
+                f"dotted_name must be a string, but it is: {dotted_name.__class__.__name__}"
             )
         else:
-            return DottedNameResolver().resolve(dotted_name)
+            resolved = DottedNameResolver().resolve(dotted_name)
+            if not issubclass(resolved, ProfileMetaProperties):
+                raise ValueError(
+                    f"class in dotted_name needs to be based on pyramid_mixpanel.ProfileMetaProperties"
+                )
+            return resolved()
 
     # TODO: enums and consumer need to be subclasses of this lib
     # TODO: key values should match field names
@@ -246,7 +266,8 @@ class MixpanelTrack:
     # TODO: Add typing for user, possibly with
     # https://mypy.readthedocs.io/en/latest/protocols.html#simple-user-defined-protocols
     def __init__(self, user, settings: SettingsType) -> None:
-        # """Initialize API connector."""
+        """Initialize API connector."""
+        self.user = user
 
         if settings.get("mixpanel.testing"):
             self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
@@ -255,7 +276,6 @@ class MixpanelTrack:
                 token=settings["mixpanel.token"], consumer=QueuedConsumer()
             )
 
-        self.user = user
         self.events = self._resolve_events(settings.get("mixpanel.events"))
         self.event_properties = self._resolve_event_properties(
             settings.get("mixpanel.event_properties")
@@ -266,7 +286,6 @@ class MixpanelTrack:
         self.profile_meta_properties = self._resolve_profile_meta_properties(
             settings.get("mixpanel.profile_meta_properties")
         )
-        # TODO: ProfileProperties need to be a subset of provided EventProperties
 
     # TODO: decorator that verifies that events are enums and not strings
     # TODO: Can event_name be an Enum object instead of a string?
