@@ -32,7 +32,7 @@ type: types
 types: .installed
 	@pipenv run mypy pyramid_mixpanel
 	@cat ./typecov/linecount.txt
-	@pipenv run python .mypy/type_coverage.py 48 ./typecov/linecount.txt
+	@pipenv run python .mypy/type_coverage.py 61 ./typecov/linecount.txt
 
 .PHONY: sort
 sort: .installed
@@ -55,7 +55,7 @@ filter = "."
 # additional arguments for pytest
 args = ""
 pytest_args = -k $(filter) $(args)
-coverage_args = --cov=pyramid_mixpanel --cov-branch --cov-report html --cov-report xml:cov.xml --cov-report term-missing --cov-fail-under=77
+coverage_args = --cov=pyramid_mixpanel --cov-branch --cov-report html --cov-report xml:cov.xml --cov-report term-missing --cov-fail-under=74
 
 .PHONY: unit
 unit: .installed

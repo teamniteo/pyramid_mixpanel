@@ -2,6 +2,7 @@
 
 # from enum import Enum
 from freezegun import freeze_time
+from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
 from pyramid_mixpanel import MixpanelTrack
 from pyramid_mixpanel import MockedConsumer
@@ -51,18 +52,27 @@ def test_track():
         },
     }
 
-    m.track(Events.user_logged_in, {"foo": "bar"})
+    m.track(
+        Events.page_viewed,
+        {
+            EventProperties.path: "/about",
+            EventProperties.title: "About Us",
+            EventProperties.dollar_referrer: "https://niteo.co",
+        },
+    )
     assert len(m.api._consumer.mocked_messages) == 2
     assert m.api._consumer.mocked_messages[1].endpoint == "events"
     assert m.api._consumer.mocked_messages[1].msg == {
-        "event": "User Logged In",
+        "event": "Page Viewed",
         "properties": {
             "token": "testing",
             "distinct_id": "distinct id",
             "time": 1514764800,  # 2018-01-01
             "mp_lib": "python",
             "$lib_version": "4.4.0",
-            "foo": "bar",
+            "$referrer": "https://niteo.co",
+            "Path": "/about",
+            "Title": "About Us",
         },
     }
 

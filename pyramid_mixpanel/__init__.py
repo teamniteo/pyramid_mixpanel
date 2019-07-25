@@ -8,8 +8,6 @@ MixpanelTrack is prepared as `request.mixpanel` for easier usage in view code.
 """
 from dataclasses import dataclass
 from dataclasses import field
-from enum import Enum
-from enum import EnumMeta
 from mixpanel import Mixpanel
 from pyramid.config import Configurator
 from pyramid.path import DottedNameResolver
@@ -23,38 +21,60 @@ import typing as t
 logger = structlog.get_logger(__name__)
 
 
-class Events(Enum):
+@dataclass(frozen=True)
+class Event:
+    """A single event that we send to Mixpanel."""
+
+    # The name of this event that will be shown in Mixpanel. Should be
+    # something nice, like "Page Viewed".
+    name: str
+
+
+@dataclass(frozen=True)
+class Events:
     """Let's be precise which events we will send.
 
     Otherwise different parts of code will send slightly differently named
-    event and then you can wish good luck to the marketing/product team
+    events and then you can wish good luck to the marketing/product team
     when they are trying to decipher what's the difference between
-    "Page Loaded", "User Visited" and "Page View".
+    "Page Load", "User Visited" and "Viewed Page".
 
     So we're only allowing properties listed below. You can provide your own
-    list of properties via `mixpanel.events_properties` setting.
+    list of properties via the `mixpanel.events` setting.
     """
 
     # Any page view should be tracked with this event. More specific events
     # can then be built with Mixpanel Web UI by filtering these events by
     # path and/or title. Further info:
     # https://help.mixpanel.com/hc/en-us/articles/115004562246-Combine-Events-To-Create-A-Custom-Event
-    page_viewed = "Page Viewed"
+    page_viewed: Event = Event("Page Viewed")
 
     # Any click should be tracked with this event. More specific events
     # can then be built with Mixpanel Web UI by filtering these events by
     # path and/or title. Further info:
     # https://help.mixpanel.com/hc/en-us/articles/115004562246-Combine-Events-To-Create-A-Custom-Event
-    button_link_clicked = "Button/Link Clicked"
+    button_link_clicked: Event = Event("Button/Link Clicked")
 
     # Events for tracking user's account/subscription status.
-    user_signed_up = "User Signed Up"
-    user_logged_in = "User Logged In"
-    user_charged = "User Charged"
-    user_disabled = "User Disabled"
+    user_signed_up: Event = Event("User Signed Up")
+    user_logged_in: Event = Event("User Logged In")
+    user_charged: Event = Event("User Charged")
+    user_disabled: Event = Event("User Disabled")
 
 
-class EventProperties(Enum):
+@dataclass(frozen=True)
+class Property:
+    """A single property that we attach to Mixpanel events or profiles."""
+
+    # The name of this property that will be shown in Mixpanel. Should be
+    # something nice, like "Path" or "Title". Some properties are ~special~
+    # and they are prefixed with the dollar sign ($). Read more about them on
+    # https://help.mixpanel.com/hc/en-us/articles/115004602703-Reserved-or-Special-Properties
+    name: str
+
+
+@dataclass(frozen=True)
+class EventProperties:
     """Let's be precise which properties we will set on Events.
 
     Otherwise different parts of code will set slightly differently named
@@ -63,16 +83,20 @@ class EventProperties(Enum):
     "name".
 
     So we're only allowing properties listed below. You can provide your own
-    list of properties via `mixpanel.events_properties` setting.
+    list of properties via the `mixpanel.event_properties` setting.
     """
 
     # Used for building bespoke custom events from Page Viewed and
     # Button/Link Clicked events.
-    title = "Title"
-    path = "Path"
+    title: Property = Property("Title")
+    path: Property = Property("Path")
+
+    # Referring URL, including your own domain.
+    dollar_referrer: Property = Property("$referrer")
 
 
-class ProfileProperties(Enum):
+@dataclass(frozen=True)
+class ProfileProperties:
     """Let's be precise which properties we will set on Profile records.
 
     Otherwise different parts of code will set slightly differently named
@@ -86,33 +110,37 @@ class ProfileProperties(Enum):
 
     # The time when the user created their account. This should be expressed
     # as a Mixpanel date string.
-    dollar_created = "$created"
+    dollar_created: Property = Property("$created")
 
     # The user's email address as a string, e.g. "joe.doe@example.com".
     # Mixpanel will use the "$email" property when sending email messages
     # to your users, and for displaying the user's gravatar image in reports.
-    dollar_email = "$email"
+    dollar_email: Property = Property("$email")
 
-    # Should be set to the first and last name of the user represented by
-    # the profile. If these are set, the full name of the user will be
-    # displayed in Mixpanel reports.
-    dollar_first_name = "$first_name"
-    dollar_last_name = "$last_name"
+    # The users full name. If it is set, the full name of the user will be
+    # displayed in Mixpanel reports, plus you can craft more personalized
+    # automated email and in-app message.
+    dollar_name: Property = Property("$name")
 
     # The user's phone number as a string, e.g. "4805551212". Mixpanel will
     # use the "$phone" property when sending SMS messages to your users.
-    dollar_phone = "$phone"
+    dollar_phone: Property = Property("$phone")
+
+    # If this property is set to any value, a user will be unsubscribed
+    # from Mixpanel automated email messages.
+    dollar_unsubscribed: Property = Property("$unsubscribed")
 
     # State of user's account or subscription. Not something that Mixpanel
     # tracks by default, but pyramid_mixpanel expects to be tracked.
-    state = "State"
+    state: Property = Property("State")
 
 
-class ProfileMetaProperties(Enum):
+@dataclass(frozen=True)
+class ProfileMetaProperties:
     """Warning: here be dragons! Overrides of how Mixpanel works.
 
-    There are used very rarely to override special values sent to Mixpanel
-    to override sane default behavior.
+    There are used very rarely to send special values to Mixpanel to override
+    sane default behavior.
     """
 
     # The IP address associated with a given profile. Mixpanel uses IP for
@@ -120,28 +148,29 @@ class ProfileMetaProperties(Enum):
     # will set it to 0, and Mixpanel will ignore it. You probably have Mixpanel
     # installed in the frontend, and that sends over user's real IP so you can
     # leave this one empty.
-    dollar_ip = "$ip"
+    dollar_ip: Property = Property("$ip")
 
     # Seconds since midnight, January 1st 1970, UTC. Updates are applied
     # in $time order, so setting this value can lead to unexpected results
     # unless care is taken. If $time is not included in a request, Mixpanel
     # will use the time the update arrives at the Mixpanel server.
-    dollar_time = "$time"
+    dollar_time: Property = Property("$time")
 
     # If the $ignore_time property is present and true in your update request,
     # Mixpanel will not automatically update the "Last Seen" property of the
     # profile. Otherwise, Mixpanel will add a "Last Seen" property associated
     # with the current time for all $set, $append, and $add operations.
-    dollar_ignore_time = "$ignore_time"
+    dollar_ignore_time: Property = Property("$ignore_time")
 
     # If the $ignore_alias property is present and true in your update request,
     # Mixpanel will apply the update directly to the profile with the
     # distinct_id included in the request, rather than allowing this
     # distinct_id to be recognized as an alias during ingestion.
-    dollar_ignore_alias = "$ignore_alias"
+    dollar_ignore_alias: Property = Property("$ignore_alias")
 
 
-PropertiesType = t.Dict[EnumMeta, t.Union[str, int, bool]]
+SettingsType = t.Dict[str, t.Union[str, int, bool]]
+PropertiesType = t.Dict[Property, t.Union[str, int, bool]]
 
 #################################################
 #              ---- Tracking ----               #
@@ -156,56 +185,68 @@ class MixpanelTrack:
     https://pypi.python.org/pypi/mixpanel under the hood.
     """
 
+    events: Events
+    event_properties: EventProperties
+    profile_properties: ProfileProperties
+    profile_meta_properties: ProfileMetaProperties
+
     @staticmethod
-    def _resolve_dotted_names(settings: t.Dict[str, str]):
-        """Resolve dotted-name paths of Enums into Enum objects."""
-
-        # Set default values
-
-        if not settings.get("mixpanel.events"):
-            settings["mixpanel.events"] = "pyramid_mixpanel.Events"
-
-        if not settings.get("mixpanel.event_properties"):
-            settings["mixpanel.event_properties"] = "pyramid_mixpanel.Events"
-
-        if not settings.get("mixpanel.profile_properties"):
-            settings["mixpanel.profile_properties"] = "pyramid_mixpanel.Events"
-
-        if not settings.get("mixpanel.profile_meta_properties"):
-            settings["mixpanel.profile_meta_properties"] = "pyramid_mixpanel.Events"
-
-        if not settings.get("mixpanel.consumer"):
-            settings["mixpanel.consumer"] = "pyramid_mixpanel.BufferedConsumer"
-
-        # Resolve dotted-names to actual objects
-
-        if settings["mixpanel.events"] is str:
-            settings["mixpanel.events"] = DottedNameResolver().resolve(
-                settings["mixpanel.events"]
+    def _resolve_events(dotted_name: t.Optional[object] = None) -> Events:
+        if not dotted_name:
+            return Events()
+        if not isinstance(dotted_name, str):
+            raise ValueError(
+                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
             )
+        else:
+            return DottedNameResolver().resolve(dotted_name)
 
-        if settings["mixpanel.event_properties"] is str:
-            settings["mixpanel.event_properties"] = DottedNameResolver().resolve(
-                settings["mixpanel.event_properties"]
+    @staticmethod
+    def _resolve_event_properties(
+        dotted_name: t.Optional[object] = None
+    ) -> EventProperties:
+        if not dotted_name:
+            return EventProperties()
+        if not isinstance(dotted_name, str):
+            raise ValueError(
+                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
             )
+        else:
+            return DottedNameResolver().resolve(dotted_name)
 
-        if settings["mixpanel.profile_properties"] is str:
-            settings["mixpanel.profile_properties"] = DottedNameResolver().resolve(
-                settings["mixpanel.profile_properties"]
+    @staticmethod
+    def _resolve_profile_properties(
+        dotted_name: t.Optional[object] = None
+    ) -> ProfileProperties:
+        if not dotted_name:
+            return ProfileProperties()
+        if not isinstance(dotted_name, str):
+            raise ValueError(
+                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
             )
+        else:
+            return DottedNameResolver().resolve(dotted_name)
 
-        if settings["mixpanel.consumer"] is str:
-            settings["mixpanel.consumer"] = DottedNameResolver().resolve(
-                settings["mixpanel.consumer"]
+    @staticmethod
+    def _resolve_profile_meta_properties(
+        dotted_name: t.Optional[object] = None
+    ) -> ProfileMetaProperties:
+        if not dotted_name:
+            return ProfileMetaProperties()
+        if not isinstance(dotted_name, str):
+            raise ValueError(
+                f"dotted_name must be a string, but it is: {dotted_name.__class__}"
             )
+        else:
+            return DottedNameResolver().resolve(dotted_name)
 
-        # TODO: enums and consumer need to be subclasses of this lib
+    # TODO: enums and consumer need to be subclasses of this lib
+    # TODO: key values should match field names
 
     # TODO: Add typing for user, possibly with
     # https://mypy.readthedocs.io/en/latest/protocols.html#simple-user-defined-protocols
-    def __init__(self, user, settings: t.Dict[str, str]) -> None:
-        """Initialize API connector."""
-        self._resolve_dotted_names(settings)
+    def __init__(self, user, settings: SettingsType) -> None:
+        # """Initialize API connector."""
 
         if settings.get("mixpanel.testing"):
             self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
@@ -215,20 +256,31 @@ class MixpanelTrack:
             )
 
         self.user = user
-        self.Events = settings.get("mixpanel.events")
-        self.EventProperties = settings.get("mixpanel.events")
-        self.ProfileProperties = settings.get("mixpanel.events")
-
+        self.events = self._resolve_events(settings.get("mixpanel.events"))
+        self.event_properties = self._resolve_event_properties(
+            settings.get("mixpanel.event_properties")
+        )
+        self.profile_properties = self._resolve_profile_properties(
+            settings.get("mixpanel.profile_properties")
+        )
+        self.profile_meta_properties = self._resolve_profile_meta_properties(
+            settings.get("mixpanel.profile_meta_properties")
+        )
         # TODO: ProfileProperties need to be a subset of provided EventProperties
 
     # TODO: decorator that verifies that events are enums and not strings
     # TODO: Can event_name be an Enum object instead of a string?
-    def track(self, event: EnumMeta, props: t.Optional[PropertiesType] = None) -> None:
+
+    def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
         """Track a Mixpanel event."""
         if not props:
             props = {}
 
-        self.api.track(self.user.distinct_id, event.value, props)
+        self.api.track(
+            self.user.distinct_id,
+            event.name,
+            {prop.name: value for (prop, value) in props.items()},
+        )
 
     def profile_sync(
         self,
@@ -241,9 +293,9 @@ class MixpanelTrack:
         """
         props = {
             # fmt: off
-            self.ProfileProperties["dollar_email"]: self.user.email,
-            self.ProfileProperties["dollar_created"]: self.user.created.isoformat(),
-            self.ProfileProperties["state"]: self.user.state,
+            self.profile_properties.dollar_email: self.user.email,
+            self.profile_properties.dollar_created: self.user.created.isoformat(),
+            self.profile_properties.state: self.user.state,
             # fmt: on
         }
         if extra:
@@ -265,20 +317,27 @@ class MixpanelTrack:
 
         self.api.people_set(
             self.user.distinct_id,
-            {prop.value for prop in props},
-            {prop.value for prop in meta},
+            {prop.name: value for (prop, value) in props.items()},
+            {prop.name: value for (prop, value) in meta.items()},
         )
 
-    def profile_increment(self, props: t.Dict[EnumMeta, str]) -> None:
+    def profile_increment(self, props: t.Dict[Property, str]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
-        self.api.people_increment(self.user.distinct_id, {prop.value for prop in props})
+        self.api.people_increment(
+            self.user.distinct_id, {prop.name: value for (prop, value) in props.items()}
+        )
 
     def profile_track_charge(
-        self, amount: int, props: t.Optional[t.Dict[EnumMeta, str]] = None
+        self, amount: int, props: t.Optional[t.Dict[Property, str]] = None
     ) -> None:
         """Wrap around api.people_track_charge to set distinct_id."""
+        if not props:
+            props = {}
+
         self.api.people_track_charge(
-            self.user.distinct_id, amount, {prop.value for prop in props}
+            self.user.distinct_id,
+            amount,
+            {prop.name: value for (prop, value) in props.items()},
         )
 
 
