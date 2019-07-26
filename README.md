@@ -130,8 +130,8 @@ A couple of projects that use pyramid_mixpanel in production:
 * [x] study https://github.com/mixpanel/mixpanel-python/blob/master/demo/subprocess_consumer.py
 * [x] CircleCI
 * [ ] 100% test coverage
-* [ ] 100% types coverage
-* [ ] custom Enums
+* [x] 100% types coverage
+* [x] custom Enums
 * [ ] configure background task to be scheduled
 * [ ] nicer error if dotted names are invalid
 * [ ] nicer error if user is not set

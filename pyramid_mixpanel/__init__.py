@@ -369,7 +369,7 @@ class MixpanelTrack:
 class QueuedConsumer:
     """Queue sending Mixpanel messages in a separate background queue processor."""
 
-    def send(self, endpoint, json_message):
+    def send(self, endpoint: str, json_message: str) -> None:
         """Queue sending of Mixpanel message in a background task."""
         # send_api.delay(endpoint, json_message)
         raise NotImplementedError
@@ -390,13 +390,13 @@ class MockedConsumer:
     # Internal storage of mocked message
     mocked_messages: t.List = field(default_factory=lambda: [])
 
-    def send(self, endpoint, json_message):
+    def send(self, endpoint: str, json_message: str) -> None:
         """Append message to the mocked_messages list."""
         msg = MockedMessage(endpoint=endpoint, msg=json.loads(json_message))
         self.mocked_messages.append(msg)
 
 
-def mixpanel_track(request: Request):
+def mixpanel_track(request: Request) -> MixpanelTrack:
     """Return MixpanelTrack class instance."""
     return MixpanelTrack(settings=request.registry.settings, user=request.user)
 

@@ -21,7 +21,7 @@ import pytest
 def _make_user(
     distinct_id="distinct id", email="foo@bar.com", created=None, state="subscribed"
 ) -> mock.MagicMock:
-    if not created:
+    if not created:  # pragma: no branch
         created = datetime(2019, 1, 2, 3, 4, 5)
 
     user = mock.Mock(spec="distinct_id email created state".split())
