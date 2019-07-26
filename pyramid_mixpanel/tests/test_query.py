@@ -1,6 +1,6 @@
 """Tests for querying data from Mixpanel."""
 
-from pyramid_mixpanel import MixpanelQuery
+from pyramid_mixpanel.query import MixpanelQuery
 
 import pytest
 import responses

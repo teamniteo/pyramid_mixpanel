@@ -6,15 +6,14 @@ from freezegun import freeze_time
 from pyramid_mixpanel import Event
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
-from pyramid_mixpanel import MixpanelTrack
-from pyramid_mixpanel import MockedConsumer
 from pyramid_mixpanel import ProfileMetaProperties
 from pyramid_mixpanel import ProfileProperties
 from pyramid_mixpanel import Property
-from pyramid_mixpanel import QueuedConsumer
+from pyramid_mixpanel.consumer import MockedConsumer
+from pyramid_mixpanel.consumer import QueuedConsumer
+from pyramid_mixpanel.track import MixpanelTrack
 from unittest import mock
 
-# import mixpanel
 import pytest
 
 

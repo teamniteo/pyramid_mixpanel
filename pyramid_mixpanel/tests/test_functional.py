@@ -35,7 +35,7 @@ def app() -> Router:
         return config.make_wsgi_app()
 
 
-@mock.patch("pyramid_mixpanel.MockedConsumer")
+@mock.patch("pyramid_mixpanel.track.MockedConsumer")
 @freeze_time("2018-01-01")
 def test_mixpanel_request_accessor(mocked_consumer) -> None:
     """Test that request.mixpanel works as expected."""
