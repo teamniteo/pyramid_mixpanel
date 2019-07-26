@@ -192,6 +192,7 @@ class MixpanelTrack:
 
     @staticmethod
     def _resolve_events(dotted_name: t.Optional[object] = None) -> Events:
+        """Resolve a dotted-name into an Events object and set it to self.events."""
         if not dotted_name:
             return Events()
         if not isinstance(dotted_name, str):
@@ -210,6 +211,7 @@ class MixpanelTrack:
     def _resolve_event_properties(
         dotted_name: t.Optional[object] = None
     ) -> EventProperties:
+        """Resolve a dotted-name into an EventProperties object and set it to self.event_properties."""
         if not dotted_name:
             return EventProperties()
         if not isinstance(dotted_name, str):
@@ -228,6 +230,7 @@ class MixpanelTrack:
     def _resolve_profile_properties(
         dotted_name: t.Optional[object] = None
     ) -> ProfileProperties:
+        """Resolve a dotted-name into an ProfileProperties object and set it to self.profile_properties."""
         if not dotted_name:
             return ProfileProperties()
         if not isinstance(dotted_name, str):
@@ -246,6 +249,7 @@ class MixpanelTrack:
     def _resolve_profile_meta_properties(
         dotted_name: t.Optional[object] = None
     ) -> ProfileMetaProperties:
+        """Resolve a dotted-name into an ProfileMetaProperties object and set it to self.profile_meta_properties."""
         if not dotted_name:
             return ProfileMetaProperties()
         if not isinstance(dotted_name, str):
@@ -259,9 +263,6 @@ class MixpanelTrack:
                     f"class in dotted_name needs to be based on pyramid_mixpanel.ProfileMetaProperties"
                 )
             return resolved()
-
-    # TODO: enums and consumer need to be subclasses of this lib
-    # TODO: key values should match field names
 
     # TODO: Add typing for user, possibly with
     # https://mypy.readthedocs.io/en/latest/protocols.html#simple-user-defined-protocols

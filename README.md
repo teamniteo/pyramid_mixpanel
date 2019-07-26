@@ -39,7 +39,7 @@
 
 ## Opinionated Mixpanel integration
 
-The reason this package exists is to provide sane defaults when integrating with Mixpanel. Instead of chasing down event name typos and debugging why tracking does not work, you can focus on more important things in life.
+The reason this package exists is to provide sane defaults when integrating with Mixpanel. Instead of chasing down event name typos and debugging why tracking does not work, you can focus on learning what is important to your users.
 
 - foo
 - bar
@@ -83,6 +83,10 @@ mixpanel.profile_properties = myapp.mixpanel.ProfileProperties
 
 # defer sending of Mixpanel messages to a background task queue
 mixpanel.consumer = myapp.mixpanel.QueuedConsumer
+
+# support for multi-site environment, token is fetched on every request
+# by calling the configured function
+mixpanel.token = myapp.mixpanel.dinamic_token
 ```
 
 For view code dealing with requests, a pre-configured `request.mixpanel`
@@ -131,3 +135,4 @@ A couple of projects that use pyramid_mixpanel in production:
 * [ ] configure background task to be scheduled
 * [ ] nicer error if dotted names are invalid
 * [ ] nicer error if user is not set
+* [ ] multisite support with making mixpanel.token a callable
