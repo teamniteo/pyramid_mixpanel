@@ -418,12 +418,22 @@ def test_profile_track_charge() -> None:
         },
     )
 
-    m.profile_track_charge(100, props={FooProfileProperties.foo: "Bar"})
+    m.profile_track_charge(100)
     assert len(m.api._consumer.mocked_messages) == 1
     assert m.api._consumer.mocked_messages[0].endpoint == "people"
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
         "$time": 1514764800000,
         "$distinct_id": "distinct id",
-        "$append": {"$transactions": {"Foo": "Bar", "$amount": 100}},
+        "$append": {"$transactions": {"$amount": 100}},
+    }
+
+    m.profile_track_charge(222, props={FooProfileProperties.foo: "Bar"})
+    assert len(m.api._consumer.mocked_messages) == 2
+    assert m.api._consumer.mocked_messages[1].endpoint == "people"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$append": {"$transactions": {"Foo": "Bar", "$amount": 222}},
     }

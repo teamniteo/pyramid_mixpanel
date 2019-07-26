@@ -372,7 +372,7 @@ class QueuedConsumer:
     def send(self, endpoint: str, json_message: str) -> None:
         """Queue sending of Mixpanel message in a background task."""
         # send_api.delay(endpoint, json_message)
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 @dataclass(frozen=True)
