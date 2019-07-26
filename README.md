@@ -107,7 +107,7 @@ You need to have [pipenv](https://pipenv.readthedocs.io/) and Python 3.7 install
 
 These packages are in the same problem-space:
 
-- [old release of pyramid_mixpanel](https://pypi.org/project/pyramid_mixpanel/0.1.65/) had some neat ideas that this project built upon, even though it is a complete rewrite;
+- [old release of pyramid_mixpanel](https://pypi.org/project/pyramid_mixpanel/0.1.65/) by @hadrien had some neat ideas that this project built upon, even though it is a complete rewrite;
 - the official [mixpanel-python](https://mixpanel.github.io/mixpanel-python/) is a lower-level library that this project depends on;
 - mostly deprecated [Mixpanel-api](https://github.com/mixpanel/mixpanel_api) for querying data, superseded by [JQL](https://mixpanel.com/jql/);
 - [mixpanel-jql](https://github.com/ownaginatious/mixpanel-jql) provides a Pythonic interface to writing JQL queries.

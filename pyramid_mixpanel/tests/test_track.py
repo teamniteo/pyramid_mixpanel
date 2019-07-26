@@ -1,6 +1,7 @@
 """Tests for Mixpanel tracking."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from freezegun import freeze_time
 from pyramid_mixpanel import Event
 from pyramid_mixpanel import EventProperties
@@ -17,13 +18,21 @@ from unittest import mock
 import pytest
 
 
-def _make_user(distinct_id="distinct id"):
-    user = mock.Mock(spec="distinct_id".split())
+def _make_user(
+    distinct_id="distinct id", email="foo@bar.com", created=None, state="subscribed"
+) -> mock.MagicMock:
+    if not created:
+        created = datetime(2019, 1, 2, 3, 4, 5)
+
+    user = mock.Mock(spec="distinct_id email created state".split())
     user.distinct_id = distinct_id
+    user.email = email
+    user.created = created
+    user.state = state
     return user
 
 
-def test_init_consumers():
+def test_init_consumers() -> None:
     """Test initialization of Consumer."""
     user = _make_user()
 
@@ -46,7 +55,7 @@ class BarEvents:
     bar: Event = Event("Bar")
 
 
-def test_init_events():
+def test_init_events() -> None:
     """Test initialization of self.events."""
     user = _make_user()
 
@@ -100,7 +109,7 @@ class BarEventProperties:
     bar: Property = Property("Bar")
 
 
-def test_init_event_properties():
+def test_init_event_properties() -> None:
     """Test initialization of self.event_properties."""
     user = _make_user()
 
@@ -157,7 +166,7 @@ class BarProfileProperties:
     bar: Property = Property("Bar")
 
 
-def test_init_profile_properties():
+def test_init_profile_properties() -> None:
     """Test initialization of self.profile_properties."""
     user = _make_user()
 
@@ -215,7 +224,7 @@ class BarProfileMetaProperties:
     bar: Property = Property("Bar")
 
 
-def test_init_profile_meta_properties():
+def test_init_profile_meta_properties() -> None:
     """Test initialization of self.profile_meta_properties."""
     user = _make_user()
 
@@ -265,7 +274,7 @@ def test_init_profile_meta_properties():
 
 
 @freeze_time("2018-01-01")
-def test_track():
+def test_track() -> None:
     """Test the track method."""
     user = _make_user()
     m = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
@@ -309,92 +318,112 @@ def test_track():
     }
 
 
-# @freeze_time("2018-01-01")
-# def test_profile_sync(db, users):
-#     """Test the profile_sync method."""
-#     user = db.query(User).filter(User.id == USER_ONE_ID).one()
+@freeze_time("2018-01-01")
+def test_profile_sync() -> None:
+    """Test the profile_sync method."""
+    user = _make_user()
 
-#     m = MixpanelTrack(user=user, settings={"mixpanel.token": "secret"})
-#     m.api = mock.Mock(spec="people_set _consumer".split())
+    m = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
 
-#     m.profile_sync()
-#     m.api.people_set.assert_called_with(
-#         "mixpanel-distinct-id-1",
-#         {
-#             "$email": "one@bar.com",
-#             "$created": "2018-01-02T00:00:00",
-#             "State": "no_subscription",
-#         },
-#         {},
-#     )
+    m.profile_sync()
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$set": {
+            "$email": "foo@bar.com",
+            "$created": "2019-01-02T03:04:05",
+            "State": "subscribed",
+        },
+    }
 
-
-#     m.profile_sync(extra={"foo": "bar"}, meta={"$foo": "ban"})
-#     m.api.people_set.assert_called_with(
-#         "mixpanel-distinct-id-1",
-#         {
-#             "$email": "one@bar.com",
-#             "$created": "2018-01-02T00:00:00",
-#             "State": "no_subscription",
-#             "foo": "bar",
-#         },
-#         {"$foo": "ban"},
-#     )
-
-
-# @freeze_time("2018-01-01")
-# def test_profile_set(db, users):
-#     """Test the profile_sync method."""
-#     user = db.query(User).filter(User.id == USER_ONE_ID).one()
-
-#     m = MixpanelTrack(user=user, settings={"mixpanel.token": "secret"})
-#     m.api = mock.Mock(spec="people_set _consumer".split())
-
-#     m.profile_set(props={"foo": "bar"})
-#     m.api.people_set.assert_called_with("mixpanel-distinct-id-1", {"foo": "bar"}, {})
-
-#     m.profile_set(props={"foo": "bar"}, meta={"$foo": "ban"})
-#     m.api.people_set.assert_called_with(
-#         "mixpanel-distinct-id-1", {"foo": "bar"}, {"$foo": "ban"}
-#     )
+    m.profile_sync(
+        extra={ProfileProperties.dollar_name: "FooBar"},
+        meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
+    )
+    assert len(m.api._consumer.mocked_messages) == 2
+    assert m.api._consumer.mocked_messages[1].endpoint == "people"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$set": {
+            "$email": "foo@bar.com",
+            "$created": "2019-01-02T03:04:05",
+            "State": "subscribed",
+            "$name": "FooBar",
+        },
+        "$ip": "1.1.1.1",
+    }
 
 
-# @freeze_time("2018-01-01")
-# def test_profile_increment(db, users):
-#     """Test the profile_increment method."""
-#     user = db.query(User).filter(User.id == USER_ONE_ID).one()
+@freeze_time("2018-01-01")
+def test_profile_set() -> None:
+    """Test the profile_sync method."""
+    user = _make_user()
 
-#     m = MixpanelTrack(user=user, settings={"mixpanel.token": "secret"})
-#     m.api = mock.Mock(spec="people_increment _consumer".split())
+    m = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
 
-#     m.profile_increment(props={"foo": 1})
-#     m.api.people_increment.assert_called_with("mixpanel-distinct-id-1", {"foo": 1})
-
-
-# @freeze_time("2018-01-01")
-# def test_profile_track_charge(db, users):
-#     """Test the profile_track_charge method."""
-#     user = db.query(User).filter(User.id == USER_ONE_ID).one()
-
-#     m = MixpanelTrack(user=user, settings={"mixpanel.token": "secret"})
-#     m.api = mock.Mock(spec="people_track_charge _consumer".split())
-
-#     m.profile_track_charge(100, props={"foo": "bar"})
-#     m.api.people_track_charge.assert_called_with(
-#         "mixpanel-distinct-id-1", 100, {"foo": "bar"}
-#     )
+    m.profile_set(
+        {ProfileProperties.dollar_name: "FooBar"},
+        meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
+    )
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$set": {"$name": "FooBar"},
+        "$ip": "1.1.1.1",
+    }
 
 
-# def test_bad_event_name():
-#     """Test the track method fails on bad event name."""
-#     user = mock.Mock()
+@freeze_time("2018-01-01")
+def test_profile_increment() -> None:
+    """Test the profile_increment method."""
+    user = _make_user()
 
-#     class FooEvents(Enum):
-#         foo = "Foo"
+    m = MixpanelTrack(
+        user=user,
+        settings={
+            "mixpanel.testing": True,
+            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties",
+        },
+    )
 
-#     with pytest.raises(Exception) as exc:
-#         MixpanelTrack(
-#             user=user, settings={"mixpanel.testing": True, "mixpanel.events": FooEvents}
-#         ).track(FooEvents.foo)
+    m.profile_increment(props={FooProfileProperties.foo: 1})
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$add": {"Foo": 1},
+    }
 
-#     assert str(exc.value) == "Unknown mixpanel event: Foo"
+
+@freeze_time("2018-01-01")
+def test_profile_track_charge() -> None:
+    """Test the profile_track_charge method."""
+    user = _make_user()
+
+    m = MixpanelTrack(
+        user=user,
+        settings={
+            "mixpanel.testing": True,
+            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties",
+        },
+    )
+
+    m.profile_track_charge(100, props={FooProfileProperties.foo: "Bar"})
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$append": {"$transactions": {"Foo": "Bar", "$amount": 100}},
+    }

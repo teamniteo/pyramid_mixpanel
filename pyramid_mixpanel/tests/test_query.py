@@ -9,7 +9,7 @@ SETTINGS = {"mixpanel.api_secret": "bar"}
 
 
 @responses.activate
-def test_zero_results():
+def test_zero_results() -> None:
     """Return None if no profiles found."""
     responses.add(
         responses.POST, "https://mixpanel.com/api/2.0/jql", json=[], status=200
@@ -19,7 +19,7 @@ def test_zero_results():
 
 
 @responses.activate
-def test_too_many_results():
+def test_too_many_results() -> None:
     """Raise exception if more than one profiles found."""
     responses.add(
         responses.POST,
@@ -41,7 +41,7 @@ def test_too_many_results():
 
 
 @responses.activate
-def test_profile_by_email():
+def test_profile_by_email() -> None:
     """Test happy path."""
     responses.add(
         responses.POST,

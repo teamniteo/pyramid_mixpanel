@@ -152,8 +152,8 @@ class ProfileMetaProperties:
 
     # Seconds since midnight, January 1st 1970, UTC. Updates are applied
     # in $time order, so setting this value can lead to unexpected results
-    # unless care is taken. If $time is not included in a request, Mixpanel
-    # will use the time the update arrives at the Mixpanel server.
+    # unless care is taken. If $time isn't provided the underlying library
+    # will set it to `time.time()`.
     dollar_time: Property = Property("$time")
 
     # If the $ignore_time property is present and true in your update request,
@@ -296,6 +296,8 @@ class MixpanelTrack:
         if not props:
             props = {}
 
+        # TODO: event should be member of self.events
+
         self.api.track(
             self.user.distinct_id,
             event.name,
@@ -335,13 +337,15 @@ class MixpanelTrack:
         if not meta:
             meta = {}
 
+        # TODO: props items should be members of self.profile_properties
+
         self.api.people_set(
             self.user.distinct_id,
             {prop.name: value for (prop, value) in props.items()},
             {prop.name: value for (prop, value) in meta.items()},
         )
 
-    def profile_increment(self, props: t.Dict[Property, str]) -> None:
+    def profile_increment(self, props: t.Dict[Property, int]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
         self.api.people_increment(
             self.user.distinct_id, {prop.name: value for (prop, value) in props.items()}
