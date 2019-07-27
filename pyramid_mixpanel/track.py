@@ -1,8 +1,10 @@
 """Tracking user events and profiles."""
 
 from mixpanel import Mixpanel
+from pyramid.events import NewRequest
 from pyramid.path import DottedNameResolver
 from pyramid.request import Request
+from pyramid.response import Response
 from pyramid_mixpanel import Event
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
@@ -10,7 +12,7 @@ from pyramid_mixpanel import ProfileMetaProperties
 from pyramid_mixpanel import ProfileProperties
 from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
-from pyramid_mixpanel.consumer import QueuedConsumer
+from pyramid_mixpanel.consumer import PoliteBufferedConsumer
 
 import structlog
 import typing as t
@@ -119,7 +121,7 @@ class MixpanelTrack:
             self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
         else:
             self.api = Mixpanel(
-                token=settings["mixpanel.token"], consumer=QueuedConsumer()
+                token=settings["mixpanel.token"], consumer=PoliteBufferedConsumer()
             )
 
         self.events = self._resolve_events(settings.get("mixpanel.events"))
@@ -210,6 +212,27 @@ class MixpanelTrack:
         )
 
 
-def mixpanel_track(request: Request) -> MixpanelTrack:
-    """Return MixpanelTrack class instance."""
-    return MixpanelTrack(settings=request.registry.settings, user=request.user)
+def mixpanel_init(request: Request) -> MixpanelTrack:
+    """Return a configured MixpanelTrack class instance."""
+    mixpanel = MixpanelTrack(settings=request.registry.settings, user=request.user)
+    logger.info(
+        "request.mixpanel configured",
+        consumer=mixpanel.api._consumer.__class__.__name__,
+        events=mixpanel.events.__class__.__name__,
+        event_properties=mixpanel.event_properties.__class__.__name__,
+        profile_properties=mixpanel.profile_properties.__class__.__name__,
+        profile_meta_properties=mixpanel.profile_meta_properties.__class__.__name__,
+    )
+    if mixpanel.api._consumer.__class__ == MockedConsumer:
+        logger.warning("mixpanel is in testing mode, no message will be sent")
+    return mixpanel
+
+
+def mixpanel_flush(event: NewRequest) -> None:
+    """Send out all pending messages on Pyramid request end."""
+
+    def flush(request: Request, response: Response) -> None:
+        """Send all the enqueued emails on the request."""
+        request.mixpanel.api._consumer.flush()
+
+    event.request.add_response_callback(flush)

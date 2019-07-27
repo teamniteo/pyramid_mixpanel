@@ -9,6 +9,7 @@ MixpanelTrack is prepared as `request.mixpanel` for easier usage in view code.
 """
 from dataclasses import dataclass
 from pyramid.config import Configurator
+from pyramid.events import NewRequest
 
 
 @dataclass(frozen=True)
@@ -161,6 +162,8 @@ class ProfileMetaProperties:
 
 def includeme(config: Configurator) -> None:
     """Pyramid knob."""
-    from pyramid_mixpanel.track import mixpanel_track
+    from pyramid_mixpanel.track import mixpanel_init
+    from pyramid_mixpanel.track import mixpanel_flush
 
-    config.add_request_method(mixpanel_track, "mixpanel", reify=True)
+    config.add_request_method(mixpanel_init, "mixpanel", reify=True)
+    config.add_subscriber(mixpanel_flush, NewRequest)
