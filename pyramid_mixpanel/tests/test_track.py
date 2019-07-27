@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from freezegun import freeze_time
+from pyramid.testing import DummyRequest
 from pyramid_mixpanel import Event
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
@@ -10,11 +11,14 @@ from pyramid_mixpanel import ProfileMetaProperties
 from pyramid_mixpanel import ProfileProperties
 from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
-from pyramid_mixpanel.consumer import QueuedConsumer
+from pyramid_mixpanel.consumer import PoliteBufferedConsumer
+from pyramid_mixpanel.track import mixpanel_init
 from pyramid_mixpanel.track import MixpanelTrack
+from testfixtures import LogCapture
 from unittest import mock
 
 import pytest
+import structlog
 
 
 def _make_user(
@@ -37,7 +41,7 @@ def test_init_consumers() -> None:
 
     mixpanel = MixpanelTrack(user=user, settings={"mixpanel.token": "secret"})
     assert mixpanel.user == user
-    assert mixpanel.api._consumer.__class__ == QueuedConsumer
+    assert mixpanel.api._consumer.__class__ == PoliteBufferedConsumer
 
     mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
     assert mixpanel.user == user
@@ -436,3 +440,49 @@ def test_profile_track_charge() -> None:
         "$distinct_id": "distinct id",
         "$append": {"$transactions": {"Foo": "Bar", "$amount": 222}},
     }
+
+
+def test_mixpanel_init() -> None:
+    """Test initialization via mixpanel_init."""
+    structlog.configure(
+        processors=[structlog.processors.KeyValueRenderer(sort_keys=True)],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+    )
+
+    request = DummyRequest()
+    request.user = mock.Mock()
+
+    request.registry.settings = {"mixpanel.token": "SECRET"}
+    with LogCapture() as logs:
+        mixpanel_init(request)
+
+    logs.check(
+        (
+            "pyramid_mixpanel.track",
+            "INFO",
+            "consumer='PoliteBufferedConsumer' event='request.mixpanel configured' "
+            "event_properties='EventProperties' events='Events' "
+            "profile_meta_properties='ProfileMetaProperties' "
+            "profile_properties='ProfileProperties'",
+        )
+    )
+
+    request.registry.settings = {"mixpanel.testing": True}
+    with LogCapture() as logs:
+        mixpanel_init(request)
+
+    logs.check(
+        (
+            "pyramid_mixpanel.track",
+            "INFO",
+            "consumer='MockedConsumer' event='request.mixpanel configured' "
+            "event_properties='EventProperties' events='Events' "
+            "profile_meta_properties='ProfileMetaProperties' "
+            "profile_properties='ProfileProperties'",
+        ),
+        (
+            "pyramid_mixpanel.track",
+            "WARNING",
+            "event='mixpanel is in testing mode, no message will be sent'",
+        ),
+    )

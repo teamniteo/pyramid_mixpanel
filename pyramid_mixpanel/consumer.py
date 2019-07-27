@@ -2,19 +2,14 @@
 
 from dataclasses import dataclass
 from dataclasses import field
+from mixpanel import BufferedConsumer
+from urllib.error import URLError
 
 import json
+import structlog
 import typing as t
 
-
-@dataclass(frozen=True)
-class QueuedConsumer:
-    """Queue sending Mixpanel messages in a separate background queue processor."""
-
-    def send(self, endpoint: str, json_message: str) -> None:
-        """Queue sending of Mixpanel message in a background task."""
-        # send_api.delay(endpoint, json_message)
-        raise NotImplementedError  # pragma: no cover
+logger = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -36,3 +31,28 @@ class MockedConsumer:
         """Append message to the mocked_messages list."""
         msg = MockedMessage(endpoint=endpoint, msg=json.loads(json_message))
         self.mocked_messages.append(msg)
+
+
+class PoliteBufferedConsumer(BufferedConsumer):
+    """Subclass of BufferedConsumer that logs network errors instead of failing.
+
+    Inspired by:
+    https://github.com/mixpanel/mixpanel-python/issues/36#issuecomment-72063207
+    """
+
+    def flush(self, *args, **kwargs) -> None:
+        """Try to send updates to Mixpanel."""
+        try:
+            super(PoliteBufferedConsumer, self).flush(*args, **kwargs)
+        except URLError:
+            logger.exception("It seems like Mixpanel is down.", exc_info=True)
+
+
+@dataclass(frozen=True)
+class QueuedConsumer:
+    """Queue sending Mixpanel messages in a separate background queue processor."""
+
+    def send(self, endpoint: str, json_message: str) -> None:
+        """Queue sending of Mixpanel message in a background task."""
+        # send_api.delay(endpoint, json_message)
+        raise NotImplementedError  # pragma: no cover
