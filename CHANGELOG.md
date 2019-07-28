@@ -4,7 +4,7 @@
 0.2.1 (2019-07-28)
 ------------------
 
-* Not all consumers have .flush() method.
+* Not all consumers have a .flush() method.
   [zupo]
 
 
