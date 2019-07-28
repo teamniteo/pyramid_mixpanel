@@ -1,6 +1,13 @@
 ## Changelog
 
 
+0.2.1 (2019-07-28)
+------------------
+
+* Not all consumers have .flush() method.
+  [zupo]
+
+
 0.2.0 (2019-07-27)
 ------------------
 
