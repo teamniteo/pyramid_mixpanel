@@ -232,7 +232,8 @@ def mixpanel_flush(event: NewRequest) -> None:
     """Send out all pending messages on Pyramid request end."""
 
     def flush(request: Request, response: Response) -> None:
-        """Send all the enqueued emails on the request."""
-        request.mixpanel.api._consumer.flush()
+        """Send all the enqueued emails at the end of request lifecycle."""
+        if getattr(request.mixpanel.api._consumer, "flush", None):  # noqa: 236
+            request.mixpanel.api._consumer.flush()
 
     event.request.add_response_callback(flush)
