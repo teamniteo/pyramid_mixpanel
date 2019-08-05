@@ -1,7 +1,6 @@
 """Tests for Mixpanel tracking."""
 
 from dataclasses import dataclass
-from datetime import datetime
 from freezegun import freeze_time
 from pyramid_mixpanel import Event
 from pyramid_mixpanel import EventProperties
@@ -17,17 +16,9 @@ from unittest import mock
 import pytest
 
 
-def _make_user(
-    distinct_id="distinct id", email="foo@bar.com", created=None, state="subscribed"
-) -> mock.MagicMock:
-    if not created:  # pragma: no branch
-        created = datetime(2019, 1, 2, 3, 4, 5)
-
-    user = mock.Mock(spec="distinct_id email created state".split())
+def _make_user(distinct_id="distinct id") -> mock.MagicMock:
+    user = mock.Mock(spec="distinct_id".split())
     user.distinct_id = distinct_id
-    user.email = email
-    user.created = created
-    user.state = state
     return user
 
 
@@ -318,28 +309,25 @@ def test_track() -> None:
 
 
 @freeze_time("2018-01-01")
-def test_profile_sync() -> None:
-    """Test the profile_sync method."""
+def test_profile_set() -> None:
+    """Test the profile_set method."""
     user = _make_user()
 
     m = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
 
-    m.profile_sync()
+    m.profile_set({ProfileProperties.dollar_name: "FooBar"})
     assert len(m.api._consumer.mocked_messages) == 1
     assert m.api._consumer.mocked_messages[0].endpoint == "people"
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
         "$time": 1514764800000,
         "$distinct_id": "distinct id",
-        "$set": {
-            "$email": "foo@bar.com",
-            "$created": "2019-01-02T03:04:05",
-            "State": "subscribed",
-        },
+        "$set": {"$name": "FooBar"},
     }
 
-    m.profile_sync(
-        extra={ProfileProperties.dollar_name: "FooBar"},
+    # with meta properties
+    m.profile_set(
+        {ProfileProperties.dollar_name: "FooBar2"},
         meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
     )
     assert len(m.api._consumer.mocked_messages) == 2
@@ -348,34 +336,7 @@ def test_profile_sync() -> None:
         "$token": "testing",
         "$time": 1514764800000,
         "$distinct_id": "distinct id",
-        "$set": {
-            "$email": "foo@bar.com",
-            "$created": "2019-01-02T03:04:05",
-            "State": "subscribed",
-            "$name": "FooBar",
-        },
-        "$ip": "1.1.1.1",
-    }
-
-
-@freeze_time("2018-01-01")
-def test_profile_set() -> None:
-    """Test the profile_sync method."""
-    user = _make_user()
-
-    m = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
-
-    m.profile_set(
-        {ProfileProperties.dollar_name: "FooBar"},
-        meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
-    )
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800000,
-        "$distinct_id": "distinct id",
-        "$set": {"$name": "FooBar"},
+        "$set": {"$name": "FooBar2"},
         "$ip": "1.1.1.1",
     }
 

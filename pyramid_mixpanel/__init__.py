@@ -121,10 +121,6 @@ class ProfileProperties:
     # from Mixpanel automated email messages.
     dollar_unsubscribed: Property = Property("$unsubscribed")
 
-    # State of user's account or subscription. Not something that Mixpanel
-    # tracks by default, but pyramid_mixpanel expects to be tracked.
-    state: Property = Property("State")
-
 
 @dataclass(frozen=True)
 class ProfileMetaProperties:

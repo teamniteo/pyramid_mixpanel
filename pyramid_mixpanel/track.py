@@ -151,27 +151,6 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in props.items()},
         )
 
-    def profile_sync(
-        self,
-        extra: t.Optional[PropertiesType] = None,
-        meta: t.Optional[PropertiesType] = None,
-    ) -> None:
-        """Create or update user's Profile.
-
-        The `meta` argument overrides Mixpanel special properties, such as $ip.
-        """
-        props = {
-            # fmt: off
-            self.profile_properties.dollar_email: self.user.email,
-            self.profile_properties.dollar_created: self.user.created.isoformat(),
-            self.profile_properties.state: self.user.state,
-            # fmt: on
-        }
-        if extra:
-            props.update(extra)
-
-        self.profile_set(props, meta=meta)
-
     def profile_set(
         self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
     ) -> None:
@@ -232,7 +211,7 @@ def mixpanel_flush(event: NewRequest) -> None:
     """Send out all pending messages on Pyramid request end."""
 
     def flush(request: Request, response: Response) -> None:
-        """Send all the enqueued emails at the end of request lifecycle."""
+        """Send all the enqueued messages at the end of request lifecycle."""
         if getattr(request.mixpanel.api._consumer, "flush", None):  # noqa: 236
             request.mixpanel.api._consumer.flush()
 

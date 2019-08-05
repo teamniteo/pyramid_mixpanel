@@ -125,7 +125,7 @@ A couple of projects that use pyramid_mixpanel in production:
 # TODO:
 
 * [ ] study https://pypi.org/project/pyramid_mixpanel/0.1.65/
-* [ ] specify assumptions: request has a .user object that has .email, .created, .state and .distinct_id
+* [ ] specify assumptions: request has a .user object that has .distinct_id
 * [ ] stuctlog should be optional
 * [x] study https://github.com/mixpanel/mixpanel-python/blob/master/demo/subprocess_consumer.py
 * [x] CircleCI
@@ -137,3 +137,4 @@ A couple of projects that use pyramid_mixpanel in production:
 * [ ] nicer error if user is not set
 * [ ] multisite support with making mixpanel.token a callable
 * [ ] flush BufferedConsumer at the end of request
+* [ ] add all Mixpanel special/reserved properties
