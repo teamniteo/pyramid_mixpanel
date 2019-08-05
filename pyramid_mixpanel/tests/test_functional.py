@@ -54,8 +54,7 @@ def app(settings) -> Router:
 def test_MockedConsumer() -> None:
     """Test that request.mixpanel works as expected with MockedConsumer."""
     with LogCapture() as logs:
-        settings = {"mixpanel.testing": "true"}
-        testapp = TestApp(app(settings))
+        testapp = TestApp(app({}))
 
         res = testapp.get("/hello", status=200)
         assert res.json == {"hello": "world"}

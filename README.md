@@ -68,7 +68,7 @@ config.include("pyramid_mixpanel")
 
 ```ini
 # for local development and unit testing
-mixpanel.testing = true
+mixpanel.token = false
 
 # minimal configuration
 mixpanel.token = <TOKEN>

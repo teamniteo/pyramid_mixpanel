@@ -117,12 +117,12 @@ class MixpanelTrack:
         """Initialize API connector."""
         self.user = user
 
-        if settings.get("mixpanel.testing"):
-            self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
-        else:
+        if settings.get("mixpanel.token"):
             self.api = Mixpanel(
                 token=settings["mixpanel.token"], consumer=PoliteBufferedConsumer()
             )
+        else:
+            self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
 
         self.events = self._resolve_events(settings.get("mixpanel.events"))
         self.event_properties = self._resolve_event_properties(
