@@ -70,6 +70,9 @@ config.include("pyramid_mixpanel")
 # for local development and unit testing
 mixpanel.testing = true
 
+# if `user` models doesn't exists
+mixpanel.no_initial_user = true
+
 # minimal configuration
 mixpanel.token = <TOKEN>
 
@@ -92,6 +95,18 @@ mixpanel.token = myapp.mixpanel.dinamic_token
 For view code dealing with requests, a pre-configured `request.mixpanel`
 is available.
 
+## User configuration
+
+A `user` object needs to have following attributes:
+  * distinct_id: str
+  * email: str
+  * name: str
+  * created: datetime.datetime
+  * state: str
+
+If `mixpanel.no_initial_user` is true then `request.mixpanel.user` needs to be initialized with User object along with at least `distinct_id` attribute.
+
+`request.mixpanel.profile_sync()` can be used to create/update profile.
 
 ## Design defense
 

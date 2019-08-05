@@ -214,7 +214,14 @@ class MixpanelTrack:
 
 def mixpanel_init(request: Request) -> MixpanelTrack:
     """Return a configured MixpanelTrack class instance."""
-    mixpanel = MixpanelTrack(settings=request.registry.settings, user=request.user)
+
+    settings = request.registry.settings
+    if settings.get("mixpanel.no_initial_user"):
+        user = None
+    else:
+        user = request.user
+
+    mixpanel = MixpanelTrack(settings=settings, user=user)
     logger.info(
         "request.mixpanel configured",
         consumer=mixpanel.api._consumer.__class__.__name__,

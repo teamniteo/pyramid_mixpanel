@@ -11,6 +11,7 @@ from pyramid_mixpanel import ProfileProperties
 from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
 from pyramid_mixpanel.consumer import PoliteBufferedConsumer
+from pyramid_mixpanel.track import mixpanel_init
 from pyramid_mixpanel.track import MixpanelTrack
 from unittest import mock
 
@@ -436,3 +437,14 @@ def test_profile_track_charge() -> None:
         "$distinct_id": "distinct id",
         "$append": {"$transactions": {"Foo": "Bar", "$amount": 222}},
     }
+
+
+def test_init_method_without_user() -> None:
+    """Test track init method without user."""
+    request = mock.Mock()
+    request.registry.settings = {
+        "mixpanel.token": "testing",
+        "mixpanel.no_initial_user": True,
+    }
+    mi = mixpanel_init(request)
+    assert mi.user is None
