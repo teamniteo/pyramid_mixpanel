@@ -171,6 +171,19 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in meta.items()},
         )
 
+    def people_append(
+        self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
+    ) -> None:
+        """Wrap around api.people_append to append a user profile/meta property."""
+        if not meta:
+            meta = {}
+
+        self.api.people_append(
+            self.user.distinct_id,
+            {prop.name: value for (prop, value) in props.items()},
+            {prop.name: value for (prop, value) in meta.items()},
+        )
+
     def profile_increment(self, props: t.Dict[Property, int]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
         self.api.people_increment(

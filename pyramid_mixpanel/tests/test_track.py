@@ -323,6 +323,39 @@ def test_profile_set() -> None:
 
 
 @freeze_time("2018-01-01")
+def test_people_append() -> None:
+    """Test the people_append method."""
+    user = _make_user()
+
+    m = MixpanelTrack(user=user, settings={})
+
+    m.people_append({ProfileProperties.dollar_name: "FooBar"})
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$append": {"$name": "FooBar"},
+    }
+
+    # with meta properties
+    m.people_append(
+        {ProfileProperties.dollar_name: "FooBar2"},
+        meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
+    )
+    assert len(m.api._consumer.mocked_messages) == 2
+    assert m.api._consumer.mocked_messages[1].endpoint == "people"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "distinct id",
+        "$append": {"$name": "FooBar2"},
+        "$ip": "1.1.1.1",
+    }
+
+
+@freeze_time("2018-01-01")
 def test_profile_increment() -> None:
     """Test the profile_increment method."""
     user = _make_user()
