@@ -30,7 +30,7 @@ def test_init_consumers() -> None:
     assert mixpanel.user == user
     assert mixpanel.api._consumer.__class__ == PoliteBufferedConsumer
 
-    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    mixpanel = MixpanelTrack(user=user, settings={})
     assert mixpanel.user == user
     assert mixpanel.api._consumer.__class__ == MockedConsumer
 
@@ -50,16 +50,13 @@ def test_init_events() -> None:
     user = _make_user()
 
     # default Events
-    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    mixpanel = MixpanelTrack(user=user, settings={})
     assert mixpanel.events == Events()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
         user=user,
-        settings={
-            "mixpanel.testing": True,
-            "mixpanel.events": "pyramid_mixpanel.tests.test_track.FooEvents",
-        },
+        settings={"mixpanel.events": "pyramid_mixpanel.tests.test_track.FooEvents"},
     )
     assert mixpanel.events == FooEvents()
 
@@ -68,10 +65,7 @@ def test_init_events() -> None:
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
             user=user,
-            settings={
-                "mixpanel.testing": True,
-                "mixpanel.events": "pyramid_mixpanel.tests.test_track.BarEvents",
-            },
+            settings={"mixpanel.events": "pyramid_mixpanel.tests.test_track.BarEvents"},
         )
     assert (
         str(exc.value)
@@ -81,11 +75,7 @@ def test_init_events() -> None:
     # passing Events as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
-            settings={  # type: ignore
-                "mixpanel.testing": True,
-                "mixpanel.events": FooEvents(),
-            },
+            user=user, settings={"mixpanel.events": FooEvents()}  # type: ignore
         )
     assert str(exc.value) == "dotted_name must be a string, but it is: FooEvents"
 
@@ -104,15 +94,14 @@ def test_init_event_properties() -> None:
     user = _make_user()
 
     # default EventProperties
-    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    mixpanel = MixpanelTrack(user=user, settings={})
     assert mixpanel.event_properties == EventProperties()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
         user=user,
         settings={
-            "mixpanel.testing": True,
-            "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.FooEventProperties",
+            "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.FooEventProperties"
         },
     )
     assert mixpanel.event_properties == FooEventProperties()
@@ -124,8 +113,7 @@ def test_init_event_properties() -> None:
         mixpanel = MixpanelTrack(
             user=user,
             settings={
-                "mixpanel.testing": True,
-                "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.BarEventProperties",
+                "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.BarEventProperties"
             },
         )
     assert (
@@ -138,8 +126,7 @@ def test_init_event_properties() -> None:
         mixpanel = MixpanelTrack(
             user=user,
             settings={  # type: ignore
-                "mixpanel.testing": True,
-                "mixpanel.event_properties": FooEventProperties(),
+                "mixpanel.event_properties": FooEventProperties()
             },
         )
     assert (
@@ -161,15 +148,14 @@ def test_init_profile_properties() -> None:
     user = _make_user()
 
     # default ProfileProperties
-    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    mixpanel = MixpanelTrack(user=user, settings={})
     assert mixpanel.profile_properties == ProfileProperties()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
         user=user,
         settings={
-            "mixpanel.testing": True,
-            "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.FooProfileProperties",
+            "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
         },
     )
     assert mixpanel.profile_properties == FooProfileProperties()
@@ -181,8 +167,7 @@ def test_init_profile_properties() -> None:
         mixpanel = MixpanelTrack(
             user=user,
             settings={
-                "mixpanel.testing": True,
-                "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.BarProfileProperties",
+                "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.BarProfileProperties"
             },
         )
     assert (
@@ -195,8 +180,7 @@ def test_init_profile_properties() -> None:
         mixpanel = MixpanelTrack(
             user=user,
             settings={  # type: ignore
-                "mixpanel.testing": True,
-                "mixpanel.profile_properties": FooProfileProperties(),
+                "mixpanel.profile_properties": FooProfileProperties()
             },
         )
     assert (
@@ -219,15 +203,14 @@ def test_init_profile_meta_properties() -> None:
     user = _make_user()
 
     # default ProfileMetaProperties
-    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    mixpanel = MixpanelTrack(user=user, settings={})
     assert mixpanel.profile_meta_properties == ProfileMetaProperties()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
         user=user,
         settings={
-            "mixpanel.testing": True,
-            "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.FooProfileMetaProperties",
+            "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.FooProfileMetaProperties"
         },
     )
     assert mixpanel.profile_meta_properties == FooProfileMetaProperties()
@@ -239,8 +222,7 @@ def test_init_profile_meta_properties() -> None:
         mixpanel = MixpanelTrack(
             user=user,
             settings={
-                "mixpanel.testing": True,
-                "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.BarProfileMetaProperties",
+                "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.BarProfileMetaProperties"
             },
         )
     assert (
@@ -253,8 +235,7 @@ def test_init_profile_meta_properties() -> None:
         mixpanel = MixpanelTrack(
             user=user,
             settings={  # type: ignore
-                "mixpanel.testing": True,
-                "mixpanel.profile_meta_properties": FooProfileMetaProperties(),
+                "mixpanel.profile_meta_properties": FooProfileMetaProperties()
             },
         )
     assert (
@@ -267,7 +248,7 @@ def test_init_profile_meta_properties() -> None:
 def test_track() -> None:
     """Test the track method."""
     user = _make_user()
-    m = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    m = MixpanelTrack(user=user, settings={})
 
     m.track(Events.user_logged_in)
     assert len(m.api._consumer.mocked_messages) == 1
@@ -313,7 +294,7 @@ def test_profile_set() -> None:
     """Test the profile_set method."""
     user = _make_user()
 
-    m = MixpanelTrack(user=user, settings={"mixpanel.testing": True})
+    m = MixpanelTrack(user=user, settings={})
 
     m.profile_set({ProfileProperties.dollar_name: "FooBar"})
     assert len(m.api._consumer.mocked_messages) == 1
@@ -349,8 +330,7 @@ def test_profile_increment() -> None:
     m = MixpanelTrack(
         user=user,
         settings={
-            "mixpanel.testing": True,
-            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties",
+            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
         },
     )
 
@@ -373,8 +353,7 @@ def test_profile_track_charge() -> None:
     m = MixpanelTrack(
         user=user,
         settings={
-            "mixpanel.testing": True,
-            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties",
+            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
         },
     )
 
