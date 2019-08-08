@@ -108,11 +108,9 @@ class MixpanelTrack:
                 )
             return resolved()
 
-    # TODO: Add typing for user, possibly with
-    # https://mypy.readthedocs.io/en/latest/protocols.html#simple-user-defined-protocols
-    def __init__(self, user, settings: SettingsType) -> None:
+    def __init__(self, settings: SettingsType, distinct_id=None) -> None:
         """Initialize API connector."""
-        self.user = user
+        self.distinct_id = distinct_id
 
         if settings.get("mixpanel.token"):
             self.api = Mixpanel(
@@ -133,8 +131,7 @@ class MixpanelTrack:
         )
 
     # TODO: decorator that verifies that events are enums and not strings
-    # TODO: Can event_name be an Enum object instead of a string?
-
+    # TODO: decorator that distinct_id exists
     def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
         """Track a Mixpanel event."""
         if not props:
@@ -143,7 +140,7 @@ class MixpanelTrack:
         # TODO: event should be member of self.events
 
         self.api.track(
-            self.user.distinct_id,
+            self.distinct_id,
             event.name,
             {prop.name: value for (prop, value) in props.items()},
         )
@@ -163,7 +160,7 @@ class MixpanelTrack:
         # TODO: props items should be members of self.profile_properties
 
         self.api.people_set(
-            self.user.distinct_id,
+            self.distinct_id,
             {prop.name: value for (prop, value) in props.items()},
             {prop.name: value for (prop, value) in meta.items()},
         )
@@ -171,12 +168,12 @@ class MixpanelTrack:
     def people_append(
         self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
     ) -> None:
-        """Wrap around api.people_append to append a user profile/meta property."""
+        """Wrap around api.people_append to set distinct_id."""
         if not meta:
             meta = {}
 
         self.api.people_append(
-            self.user.distinct_id,
+            self.distinct_id,
             {prop.name: value for (prop, value) in props.items()},
             {prop.name: value for (prop, value) in meta.items()},
         )
@@ -184,7 +181,7 @@ class MixpanelTrack:
     def profile_increment(self, props: t.Dict[Property, int]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
         self.api.people_increment(
-            self.user.distinct_id, {prop.name: value for (prop, value) in props.items()}
+            self.distinct_id, {prop.name: value for (prop, value) in props.items()}
         )
 
     def profile_track_charge(
@@ -195,7 +192,7 @@ class MixpanelTrack:
             props = {}
 
         self.api.people_track_charge(
-            self.user.distinct_id,
+            self.distinct_id,
             amount,
             {prop.name: value for (prop, value) in props.items()},
         )
@@ -203,7 +200,11 @@ class MixpanelTrack:
 
 def mixpanel_init(request: Request) -> MixpanelTrack:
     """Return a configured MixpanelTrack class instance."""
-    return MixpanelTrack(settings=request.registry.settings, user=request.user)
+    distinct_id = None
+    if getattr(request, "user", None):
+        distinct_id = request.user.distinct_id
+
+    return MixpanelTrack(settings=request.registry.settings, distinct_id=distinct_id)
 
 
 def mixpanel_flush(event: NewRequest) -> None:
