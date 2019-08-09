@@ -35,7 +35,7 @@ def distinct_id_is_required(function: t.Callable) -> t.Callable:
 
 
 class MixpanelTrack:
-    """Wrapper around the official `mixpanel` server-side integration of Mixpanel.
+    """Wrapper around the official `mixpanel` server-side integration for Mixpanel.
 
     You can track events and/or set people profiles. Uses
     https://pypi.python.org/pypi/mixpanel under the hood.
@@ -144,14 +144,20 @@ class MixpanelTrack:
             settings.get("mixpanel.profile_meta_properties")
         )
 
-    # TODO: decorator that verifies that events are enums and not strings
     @distinct_id_is_required
     def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
         """Track a Mixpanel event."""
         if not props:
             props = {}
 
-        # TODO: event should be member of self.events
+        if event not in self.events.__dict__.values():
+            raise ValueError(f"Event '{event}' is not a member of self.events")
+
+        for prop in props.keys():
+            if prop not in self.event_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.event_properties"
+                )
 
         self.api.track(
             self.distinct_id,

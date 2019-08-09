@@ -280,13 +280,32 @@ def test_track() -> None:
         },
     }
 
-    # should fail if distinct_id is None
+
+def test_track_guards() -> None:
+    """Test guards that make sure parameters sent to .track() are good."""
+
+    # fail if distinct_id is None
     m = MixpanelTrack(settings={})
     with pytest.raises(AttributeError) as exc:
         m.track(Events.user_logged_in)
     assert (
         str(exc.value)
         == "distinct_id must be set before you can send events or set properties"
+    )
+
+    # fail if event is not a member of mixpanel.events
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.track(FooEvents.foo)
+    assert str(exc.value) == "Event 'Event(name='Foo')' is not a member of self.events"
+
+    # fail if event property is not a member of mixpanel.event_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.track(Events.user_logged_in, {FooEventProperties.foo: "foo"})
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.event_properties"
     )
 
 
