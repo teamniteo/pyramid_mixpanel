@@ -280,6 +280,15 @@ def test_track() -> None:
         },
     }
 
+    # should fail if distinct_id is None
+    m = MixpanelTrack(settings={})
+    with pytest.raises(AttributeError) as exc:
+        m.track(Events.user_logged_in)
+    assert (
+        str(exc.value)
+        == "distinct_id must be set before you can send events or set properties"
+    )
+
 
 @freeze_time("2018-01-01")
 def test_profile_set() -> None:

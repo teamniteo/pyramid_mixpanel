@@ -20,6 +20,20 @@ SettingsType = t.Dict[str, t.Union[str, int, bool]]
 PropertiesType = t.Dict[Property, t.Union[str, int, bool]]
 
 
+def distinct_id_is_required(function: t.Callable) -> t.Callable:
+    """Raise AttributeError if self.distinct_id is not set on MixpanelTrack."""
+
+    def wrapper(*args, **kwargs):
+        self_ = args[0]
+        if not self_.distinct_id:
+            raise AttributeError(
+                "distinct_id must be set before you can send events or set properties"
+            )
+        return function(*args, **kwargs)
+
+    return wrapper
+
+
 class MixpanelTrack:
     """Wrapper around the official `mixpanel` server-side integration of Mixpanel.
 
@@ -131,7 +145,7 @@ class MixpanelTrack:
         )
 
     # TODO: decorator that verifies that events are enums and not strings
-    # TODO: decorator that distinct_id exists
+    @distinct_id_is_required
     def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
         """Track a Mixpanel event."""
         if not props:
@@ -145,6 +159,7 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in props.items()},
         )
 
+    @distinct_id_is_required
     def profile_set(
         self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
     ) -> None:
@@ -165,6 +180,7 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in meta.items()},
         )
 
+    @distinct_id_is_required
     def people_append(
         self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
     ) -> None:
@@ -178,12 +194,14 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in meta.items()},
         )
 
+    @distinct_id_is_required
     def profile_increment(self, props: t.Dict[Property, int]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
         self.api.people_increment(
             self.distinct_id, {prop.name: value for (prop, value) in props.items()}
         )
 
+    @distinct_id_is_required
     def profile_track_charge(
         self, amount: int, props: t.Optional[t.Dict[Property, str]] = None
     ) -> None:
