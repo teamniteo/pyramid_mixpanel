@@ -1,6 +1,4 @@
-## [Work-in-Progress] Integrate your [Pyramid](https://trypyramid.com) app with [Mixpanel](https://mixpanel.com/) to learn who your users are and how they are using your app.
-
-> **Warning: This project is currently in alpha. Stable release planned in August 2019. If you're curious about the progress, ping `zupo` on [irc.freenode.net](https://webchat.freenode.net/?channels=niteo).**
+## Integrate your [Pyramid](https://trypyramid.com) app with [Mixpanel](https://mixpanel.com/) to learn who your users are and how they are using your app.
 
 <p align="center">
   <img height="200" src="https://github.com/niteoweb/pyramid_mixpanel/blob/master/header.jpg?raw=true" />
@@ -41,16 +39,24 @@
 
 The reason this package exists is to provide sane defaults when integrating with Mixpanel. Instead of chasing down event name typos and debugging why tracking does not work, you can focus on learning what is important to your users.
 
-- foo
-- bar
-- baz
+- You **never have typo-duplicated events** in Mixpanel, because every event name comes from a dataclass, never from a string that can be miss-typed by mistake.
+- Same for properties. Like events, **properties are hardcoded** as dataclasses.
+- All **"special" and "reserved" events and properties are already provided**, no need to chase them down in various Mixpanel docs.
+- Your **app never stops working if Mixpanel is down**, but you still get errors in your logs so you know what is going on.
+- You **never forget to call `flush()`** on the events buffer, since `pyramid_mixpanel` hooks into the request life-cycle and calls `flush()` at the end of the request processing.
+- You **defer sending events until the entire request is processed successfully**, i.e. never send events like "User added a thing" if adding the thing to DB failed at a later stage in the request life-cycle.
 
 
 ## Features
 
-- request.mixpanel
-- queuedconsumer
-- mockedconsumer
+- Builds on top of https://mixpanel.github.io/mixpanel-python/.
+- Provides a handy `request.mixpanel.*` helper for sending events and setting profile properties.
+- Makes sure to call `.flush()` at the end of request life-cycle.
+- Provides dataclasses for events and properties, to avoid typos.
+- You can roll your own [`Consumer`](https://mixpanel.github.io/mixpanel-python/#built-in-consumers), for example one that schedules a background task to send events, to increase request processing speed, since HTTP requests to Mixpanel are offloaded to a background task.
+- Provides a MixpanelQuery helper to use [JQL](https://mixpanel.com/jql/) to query Mixpanel for data. Some common queries like one for getting profiles by email are included.
+- In local development and unit testing, all messages are stored in `request.mixpanel.api._consumer.mocked_messages` which makes writing integration tests a breeze.
+- Automatically sets Mixpanel tracking `distinct_id` if `request.user` exists. Otherwise, you need to set it manually with `request.mixpanel.distinct_id = 'foo'`.
 
 
 ## Getting started
@@ -68,6 +74,7 @@ config.include("pyramid_mixpanel")
 
 ```ini
 # for local development and unit testing
+# events will be stored in request.mixpanel.api._consumer.mocked_messages
 mixpanel.token = false
 
 # minimal configuration
@@ -83,10 +90,6 @@ mixpanel.profile_properties = myapp.mixpanel.ProfileProperties
 
 # defer sending of Mixpanel messages to a background task queue
 mixpanel.consumer = myapp.mixpanel.QueuedConsumer
-
-# support for multi-site environment, token is fetched on every request
-# by calling the configured function
-mixpanel.token = myapp.mixpanel.dinamic_token
 ```
 
 For view code dealing with requests, a pre-configured `request.mixpanel`
@@ -120,6 +123,7 @@ A couple of projects that use pyramid_mixpanel in production:
 - [WooCart](https://woocart.com) - Managed WooCommerce service.
 - [EasyBlogNetworks](https://easyblognetworks.com) - PBN hosting and autopilot maintenance.
 - [Kafkai](https://kafkai.com) - AI generated content.
+- [Docsy](https://docsy.org/) - Faceted search for private projects and teams.
 
 
 # TODO:
@@ -135,6 +139,5 @@ A couple of projects that use pyramid_mixpanel in production:
 * [ ] configure background task to be scheduled
 * [ ] nicer error if dotted names are invalid
 * [ ] nicer error if user is not set
-* [ ] multisite support with making mixpanel.token a callable
-* [ ] flush BufferedConsumer at the end of request
-* [ ] add all Mixpanel special/reserved properties
+* [x] flush BufferedConsumer at the end of request
+* [x] add all Mixpanel special/reserved properties (those that make sense)

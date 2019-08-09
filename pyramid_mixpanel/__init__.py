@@ -167,7 +167,7 @@ def includeme(config: Configurator) -> None:
     from pyramid_mixpanel.track import MixpanelTrack
     from pyramid_mixpanel.consumer import MockedConsumer
 
-    mixpanel = MixpanelTrack(settings=config.registry.settings, user=None)
+    mixpanel = MixpanelTrack(settings=config.registry.settings)
     logger.info(
         "Mixpanel configured",
         consumer=mixpanel.api._consumer.__class__.__name__,

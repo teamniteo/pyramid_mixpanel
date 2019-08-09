@@ -9,7 +9,6 @@ from pyramid.view import view_config
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
 from pyramid_mixpanel.consumer import MockedMessage
-from pyramid_mixpanel.tests.test_track import _make_user
 from testfixtures import LogCapture
 from unittest import mock
 from webtest import TestApp
@@ -24,7 +23,8 @@ import urllib
 def hello(request: Request) -> t.Dict[str, str]:
     """Say hello."""
     # mocking that request has a user object
-    request.user = _make_user()
+    request.user = mock.MagicMock(spec="distinct_id".split())
+    request.user.distinct_id = "foo-123"
 
     # provide access to Pyramid request in WebTest response
     request.environ["paste.testing_variables"]["app_request"] = request
@@ -85,7 +85,7 @@ def test_MockedConsumer() -> None:
                 "event": "Page Viewed",
                 "properties": {
                     "token": "testing",
-                    "distinct_id": "distinct id",
+                    "distinct_id": "foo-123",
                     "time": 1564322909,
                     "mp_lib": "python",
                     "$lib_version": "4.4.0",
@@ -129,7 +129,7 @@ def test_PoliteBufferedConsumer(
                 "event": "Page Viewed",
                 "properties": {
                     "token": "SECRET",
-                    "distinct_id": "distinct id",
+                    "distinct_id": "foo-123",
                     "time": 1546300800,
                     "mp_lib": "python",
                     "$lib_version": "4.4.0",

@@ -16,22 +16,36 @@ from unittest import mock
 import pytest
 
 
-def _make_user(distinct_id="distinct id") -> mock.MagicMock:
-    user = mock.Mock(spec="distinct_id".split())
-    user.distinct_id = distinct_id
-    return user
+def test_mixpanel_init_distinct_id() -> None:
+    """Test distinct_id is set in mixpanel_init function."""
+    from pyramid_mixpanel.track import mixpanel_init
+
+    # Requests without request.user
+    request = mock.Mock(spec="registry".split())
+    request.registry.settings = {}
+
+    result = mixpanel_init(request)
+
+    assert result.__class__ == MixpanelTrack
+    assert result.distinct_id is None
+
+    # Requests with request.user
+    request = mock.Mock(spec="registry user".split())
+    request.registry.settings = {}
+    request.user.distinct_id = "foo"
+
+    result = mixpanel_init(request)
+
+    assert result.__class__ == MixpanelTrack
+    assert result.distinct_id == "foo"
 
 
 def test_init_consumers() -> None:
     """Test initialization of Consumer."""
-    user = _make_user()
-
-    mixpanel = MixpanelTrack(user=user, settings={"mixpanel.token": "secret"})
-    assert mixpanel.user == user
+    mixpanel = MixpanelTrack(settings={"mixpanel.token": "secret"})
     assert mixpanel.api._consumer.__class__ == PoliteBufferedConsumer
 
-    mixpanel = MixpanelTrack(user=user, settings={})
-    assert mixpanel.user == user
+    mixpanel = MixpanelTrack(settings={})
     assert mixpanel.api._consumer.__class__ == MockedConsumer
 
 
@@ -47,16 +61,13 @@ class BarEvents:
 
 def test_init_events() -> None:
     """Test initialization of self.events."""
-    user = _make_user()
-
     # default Events
-    mixpanel = MixpanelTrack(user=user, settings={})
+    mixpanel = MixpanelTrack(settings={})
     assert mixpanel.events == Events()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
-        user=user,
-        settings={"mixpanel.events": "pyramid_mixpanel.tests.test_track.FooEvents"},
+        settings={"mixpanel.events": "pyramid_mixpanel.tests.test_track.FooEvents"}
     )
     assert mixpanel.events == FooEvents()
 
@@ -64,8 +75,7 @@ def test_init_events() -> None:
     # to contain the events that this library expects
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
-            settings={"mixpanel.events": "pyramid_mixpanel.tests.test_track.BarEvents"},
+            settings={"mixpanel.events": "pyramid_mixpanel.tests.test_track.BarEvents"}
         )
     assert (
         str(exc.value)
@@ -75,7 +85,7 @@ def test_init_events() -> None:
     # passing Events as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user, settings={"mixpanel.events": FooEvents()}  # type: ignore
+            settings={"mixpanel.events": FooEvents()}  # type: ignore
         )
     assert str(exc.value) == "dotted_name must be a string, but it is: FooEvents"
 
@@ -91,18 +101,15 @@ class BarEventProperties:
 
 def test_init_event_properties() -> None:
     """Test initialization of self.event_properties."""
-    user = _make_user()
-
     # default EventProperties
-    mixpanel = MixpanelTrack(user=user, settings={})
+    mixpanel = MixpanelTrack(settings={})
     assert mixpanel.event_properties == EventProperties()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
-        user=user,
         settings={
             "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.FooEventProperties"
-        },
+        }
     )
     assert mixpanel.event_properties == FooEventProperties()
 
@@ -111,10 +118,9 @@ def test_init_event_properties() -> None:
     # that this library expects
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
             settings={
                 "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.BarEventProperties"
-            },
+            }
         )
     assert (
         str(exc.value)
@@ -124,10 +130,7 @@ def test_init_event_properties() -> None:
     # passing EventProperties as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
-            settings={  # type: ignore
-                "mixpanel.event_properties": FooEventProperties()
-            },
+            settings={"mixpanel.event_properties": FooEventProperties()}  # type: ignore
         )
     assert (
         str(exc.value) == "dotted_name must be a string, but it is: FooEventProperties"
@@ -145,18 +148,15 @@ class BarProfileProperties:
 
 def test_init_profile_properties() -> None:
     """Test initialization of self.profile_properties."""
-    user = _make_user()
-
     # default ProfileProperties
-    mixpanel = MixpanelTrack(user=user, settings={})
+    mixpanel = MixpanelTrack(settings={})
     assert mixpanel.profile_properties == ProfileProperties()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
-        user=user,
         settings={
             "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
-        },
+        }
     )
     assert mixpanel.profile_properties == FooProfileProperties()
 
@@ -165,10 +165,9 @@ def test_init_profile_properties() -> None:
     # that this library expects
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
             settings={
                 "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.BarProfileProperties"
-            },
+            }
         )
     assert (
         str(exc.value)
@@ -178,10 +177,9 @@ def test_init_profile_properties() -> None:
     # passing ProfileProperties as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
             settings={  # type: ignore
                 "mixpanel.profile_properties": FooProfileProperties()
-            },
+            }
         )
     assert (
         str(exc.value)
@@ -200,18 +198,15 @@ class BarProfileMetaProperties:
 
 def test_init_profile_meta_properties() -> None:
     """Test initialization of self.profile_meta_properties."""
-    user = _make_user()
-
     # default ProfileMetaProperties
-    mixpanel = MixpanelTrack(user=user, settings={})
+    mixpanel = MixpanelTrack(settings={})
     assert mixpanel.profile_meta_properties == ProfileMetaProperties()
 
     # resolved from a dotted-name
     mixpanel = MixpanelTrack(
-        user=user,
         settings={
             "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.FooProfileMetaProperties"
-        },
+        }
     )
     assert mixpanel.profile_meta_properties == FooProfileMetaProperties()
 
@@ -220,10 +215,9 @@ def test_init_profile_meta_properties() -> None:
     # that this library expects
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
             settings={
                 "mixpanel.profile_meta_properties": "pyramid_mixpanel.tests.test_track.BarProfileMetaProperties"
-            },
+            }
         )
     assert (
         str(exc.value)
@@ -233,10 +227,9 @@ def test_init_profile_meta_properties() -> None:
     # passing ProfileMetaProperties as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            user=user,
             settings={  # type: ignore
                 "mixpanel.profile_meta_properties": FooProfileMetaProperties()
-            },
+            }
         )
     assert (
         str(exc.value)
@@ -247,8 +240,7 @@ def test_init_profile_meta_properties() -> None:
 @freeze_time("2018-01-01")
 def test_track() -> None:
     """Test the track method."""
-    user = _make_user()
-    m = MixpanelTrack(user=user, settings={})
+    m = MixpanelTrack(settings={}, distinct_id="foo")
 
     m.track(Events.user_logged_in)
     assert len(m.api._consumer.mocked_messages) == 1
@@ -257,7 +249,7 @@ def test_track() -> None:
         "event": "User Logged In",
         "properties": {
             "token": "testing",
-            "distinct_id": "distinct id",
+            "distinct_id": "foo",
             "time": 1514764800,  # 2018-01-01
             "mp_lib": "python",
             "$lib_version": "4.4.0",
@@ -278,7 +270,7 @@ def test_track() -> None:
         "event": "Page Viewed",
         "properties": {
             "token": "testing",
-            "distinct_id": "distinct id",
+            "distinct_id": "foo",
             "time": 1514764800,  # 2018-01-01
             "mp_lib": "python",
             "$lib_version": "4.4.0",
@@ -292,9 +284,7 @@ def test_track() -> None:
 @freeze_time("2018-01-01")
 def test_profile_set() -> None:
     """Test the profile_set method."""
-    user = _make_user()
-
-    m = MixpanelTrack(user=user, settings={})
+    m = MixpanelTrack(settings={}, distinct_id="foo")
 
     m.profile_set({ProfileProperties.dollar_name: "FooBar"})
     assert len(m.api._consumer.mocked_messages) == 1
@@ -302,7 +292,7 @@ def test_profile_set() -> None:
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
         "$time": 1514764800000,
-        "$distinct_id": "distinct id",
+        "$distinct_id": "foo",
         "$set": {"$name": "FooBar"},
     }
 
@@ -316,7 +306,7 @@ def test_profile_set() -> None:
     assert m.api._consumer.mocked_messages[1].msg == {
         "$token": "testing",
         "$time": 1514764800000,
-        "$distinct_id": "distinct id",
+        "$distinct_id": "foo",
         "$set": {"$name": "FooBar2"},
         "$ip": "1.1.1.1",
     }
@@ -325,9 +315,7 @@ def test_profile_set() -> None:
 @freeze_time("2018-01-01")
 def test_people_append() -> None:
     """Test the people_append method."""
-    user = _make_user()
-
-    m = MixpanelTrack(user=user, settings={})
+    m = MixpanelTrack(settings={}, distinct_id="foo")
 
     m.people_append({ProfileProperties.dollar_name: "FooBar"})
     assert len(m.api._consumer.mocked_messages) == 1
@@ -335,7 +323,7 @@ def test_people_append() -> None:
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
         "$time": 1514764800000,
-        "$distinct_id": "distinct id",
+        "$distinct_id": "foo",
         "$append": {"$name": "FooBar"},
     }
 
@@ -349,7 +337,7 @@ def test_people_append() -> None:
     assert m.api._consumer.mocked_messages[1].msg == {
         "$token": "testing",
         "$time": 1514764800000,
-        "$distinct_id": "distinct id",
+        "$distinct_id": "foo",
         "$append": {"$name": "FooBar2"},
         "$ip": "1.1.1.1",
     }
@@ -358,13 +346,11 @@ def test_people_append() -> None:
 @freeze_time("2018-01-01")
 def test_profile_increment() -> None:
     """Test the profile_increment method."""
-    user = _make_user()
-
     m = MixpanelTrack(
-        user=user,
         settings={
             "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
         },
+        distinct_id="foo",
     )
 
     m.profile_increment(props={FooProfileProperties.foo: 1})
@@ -373,7 +359,7 @@ def test_profile_increment() -> None:
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
         "$time": 1514764800000,
-        "$distinct_id": "distinct id",
+        "$distinct_id": "foo",
         "$add": {"Foo": 1},
     }
 
@@ -381,13 +367,11 @@ def test_profile_increment() -> None:
 @freeze_time("2018-01-01")
 def test_profile_track_charge() -> None:
     """Test the profile_track_charge method."""
-    user = _make_user()
-
     m = MixpanelTrack(
-        user=user,
         settings={
             "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
         },
+        distinct_id="foo",
     )
 
     m.profile_track_charge(100)
@@ -396,7 +380,7 @@ def test_profile_track_charge() -> None:
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
         "$time": 1514764800000,
-        "$distinct_id": "distinct id",
+        "$distinct_id": "foo",
         "$append": {"$transactions": {"$amount": 100}},
     }
 
@@ -406,6 +390,6 @@ def test_profile_track_charge() -> None:
     assert m.api._consumer.mocked_messages[1].msg == {
         "$token": "testing",
         "$time": 1514764800000,
-        "$distinct_id": "distinct id",
+        "$distinct_id": "foo",
         "$append": {"$transactions": {"Foo": "Bar", "$amount": 222}},
     }
