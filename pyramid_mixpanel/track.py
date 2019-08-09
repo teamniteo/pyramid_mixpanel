@@ -14,10 +14,7 @@ from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
 from pyramid_mixpanel.consumer import PoliteBufferedConsumer
 
-import structlog
 import typing as t
-
-logger = structlog.get_logger(__name__)
 
 SettingsType = t.Dict[str, t.Union[str, int, bool]]
 PropertiesType = t.Dict[Property, t.Union[str, int, bool]]
@@ -206,18 +203,7 @@ class MixpanelTrack:
 
 def mixpanel_init(request: Request) -> MixpanelTrack:
     """Return a configured MixpanelTrack class instance."""
-    mixpanel = MixpanelTrack(settings=request.registry.settings, user=request.user)
-    logger.info(
-        "request.mixpanel configured",
-        consumer=mixpanel.api._consumer.__class__.__name__,
-        events=mixpanel.events.__class__.__name__,
-        event_properties=mixpanel.event_properties.__class__.__name__,
-        profile_properties=mixpanel.profile_properties.__class__.__name__,
-        profile_meta_properties=mixpanel.profile_meta_properties.__class__.__name__,
-    )
-    if mixpanel.api._consumer.__class__ == MockedConsumer:
-        logger.warning("mixpanel is in testing mode, no message will be sent")
-    return mixpanel
+    return MixpanelTrack(settings=request.registry.settings, user=request.user)
 
 
 def mixpanel_flush(event: NewRequest) -> None:

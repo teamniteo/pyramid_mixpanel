@@ -56,22 +56,25 @@ def test_MockedConsumer() -> None:
     with LogCapture() as logs:
         testapp = TestApp(app({}))
 
+        # do two requests to make sure logs are not flooded with messages
+        # on every request
+        res = testapp.get("/hello", status=200)
         res = testapp.get("/hello", status=200)
         assert res.json == {"hello": "world"}
 
     logs.check(
         (
-            "pyramid_mixpanel.track",
+            "pyramid_mixpanel",
             "INFO",
-            "consumer='MockedConsumer' event='request.mixpanel configured' "
+            "consumer='MockedConsumer' event='Mixpanel configured' "
             "event_properties='EventProperties' events='Events' "
             "profile_meta_properties='ProfileMetaProperties' "
             "profile_properties='ProfileProperties'",
         ),
         (
-            "pyramid_mixpanel.track",
+            "pyramid_mixpanel",
             "WARNING",
-            "event='mixpanel is in testing mode, no message will be sent'",
+            "event='Mixpanel is in testing mode, no message will be sent!'",
         ),
     )
 
@@ -111,9 +114,9 @@ def test_PoliteBufferedConsumer(
 
     logs.check(
         (
-            "pyramid_mixpanel.track",
+            "pyramid_mixpanel",
             "INFO",
-            "consumer='PoliteBufferedConsumer' event='request.mixpanel configured' "
+            "consumer='PoliteBufferedConsumer' event='Mixpanel configured' "
             "event_properties='EventProperties' events='Events' "
             "profile_meta_properties='ProfileMetaProperties' "
             "profile_properties='ProfileProperties'",
