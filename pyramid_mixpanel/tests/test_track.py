@@ -90,6 +90,7 @@ def test_init_events() -> None:
     assert str(exc.value) == "dotted_name must be a string, but it is: FooEvents"
 
 
+@dataclass(frozen=True)
 class FooEventProperties(EventProperties):
     foo: Property = Property("Foo")
 
@@ -137,6 +138,7 @@ def test_init_event_properties() -> None:
     )
 
 
+@dataclass(frozen=True)
 class FooProfileProperties(ProfileProperties):
     foo: Property = Property("Foo")
 
@@ -187,6 +189,7 @@ def test_init_profile_properties() -> None:
     )
 
 
+@dataclass(frozen=True)
 class FooProfileMetaProperties(ProfileMetaProperties):
     foo: Property = Property("Foo")
 
@@ -242,6 +245,7 @@ def test_track() -> None:
     """Test the track method."""
     m = MixpanelTrack(settings={}, distinct_id="foo")
 
+    # default event
     m.track(Events.user_logged_in)
     assert len(m.api._consumer.mocked_messages) == 1
     assert m.api._consumer.mocked_messages[0].endpoint == "events"
@@ -255,7 +259,9 @@ def test_track() -> None:
             "$lib_version": "4.4.0",
         },
     }
+    m.api._consumer.mocked_messages.clear()
 
+    # default event with default properties
     m.track(
         Events.page_viewed,
         {
@@ -264,9 +270,9 @@ def test_track() -> None:
             EventProperties.dollar_referrer: "https://niteo.co",
         },
     )
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[1].endpoint == "events"
-    assert m.api._consumer.mocked_messages[1].msg == {
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "events"
+    assert m.api._consumer.mocked_messages[0].msg == {
         "event": "Page Viewed",
         "properties": {
             "token": "testing",
@@ -279,6 +285,60 @@ def test_track() -> None:
             "Title": "About Us",
         },
     }
+    m.api._consumer.mocked_messages.clear()
+
+    # custom event with custom properties
+    m = MixpanelTrack(
+        settings={
+            "mixpanel.events": "pyramid_mixpanel.tests.test_track.FooEvents",
+            "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.FooEventProperties",
+        },
+        distinct_id="foo",
+    )
+    m.track(FooEvents.foo, {FooEventProperties.foo: "bar"})
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "events"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "event": "Foo",
+        "properties": {
+            "token": "testing",
+            "distinct_id": "foo",
+            "time": 1514764800,
+            "mp_lib": "python",
+            "$lib_version": "4.4.0",
+            "Foo": "bar",
+        },
+    }
+
+    m.api._consumer.mocked_messages.clear()
+
+
+def test_track_guards() -> None:
+    """Test guards that make sure parameters sent to .track() are good."""
+
+    # fail if distinct_id is None
+    m = MixpanelTrack(settings={})
+    with pytest.raises(AttributeError) as exc:
+        m.track(Events.user_logged_in)
+    assert (
+        str(exc.value)
+        == "distinct_id must be set before you can send events or set properties"
+    )
+
+    # fail if event is not a member of mixpanel.events
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.track(FooEvents.foo)
+    assert str(exc.value) == "Event 'Event(name='Foo')' is not a member of self.events"
+
+    # fail if event property is not a member of mixpanel.event_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.track(Events.user_logged_in, {FooEventProperties.foo: "foo"})
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.event_properties"
+    )
 
 
 @freeze_time("2018-01-01")
@@ -312,6 +372,40 @@ def test_profile_set() -> None:
     }
 
 
+def test_profile_set_guards() -> None:
+    """Test guards that make sure parameters sent to .profile_set() are good."""
+
+    # fail if distinct_id is None
+    m = MixpanelTrack(settings={})
+    with pytest.raises(AttributeError) as exc:
+        m.profile_set({ProfileProperties.dollar_name: "FooBar"})
+    assert (
+        str(exc.value)
+        == "distinct_id must be set before you can send events or set properties"
+    )
+
+    # fail if property is not a member of mixpanel.profile_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.profile_set({FooProfileProperties.foo: "bar"})
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_properties"
+    )
+
+    # fail if meta property is not a member of mixpanel.profile_meta_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.profile_set(
+            {ProfileProperties.dollar_name: "foo"},
+            meta={FooProfileMetaProperties.foo: "bar"},
+        )
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_meta_properties"
+    )
+
+
 @freeze_time("2018-01-01")
 def test_people_append() -> None:
     """Test the people_append method."""
@@ -343,12 +437,46 @@ def test_people_append() -> None:
     }
 
 
+def test_people_append_guards() -> None:
+    """Test guards that make sure parameters sent to .people_append() are good."""
+
+    # fail if distinct_id is None
+    m = MixpanelTrack(settings={})
+    with pytest.raises(AttributeError) as exc:
+        m.people_append({ProfileProperties.dollar_name: "FooBar"})
+    assert (
+        str(exc.value)
+        == "distinct_id must be set before you can send events or set properties"
+    )
+
+    # fail if property is not a member of mixpanel.profile_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.people_append({FooProfileProperties.foo: "FooBar"})
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_properties"
+    )
+
+    # fail if meta property is not a member of mixpanel.profile_meta_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.people_append(
+            {ProfileProperties.dollar_name: "foo"},
+            meta={FooProfileMetaProperties.foo: "bar"},
+        )
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_meta_properties"
+    )
+
+
 @freeze_time("2018-01-01")
 def test_profile_increment() -> None:
     """Test the profile_increment method."""
     m = MixpanelTrack(
         settings={
-            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
+            "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
         },
         distinct_id="foo",
     )
@@ -364,12 +492,34 @@ def test_profile_increment() -> None:
     }
 
 
+def test_profile_increment_guards() -> None:
+    """Test guards that make sure parameters sent to .profile_increment() are good."""
+
+    # fail if distinct_id is None
+    m = MixpanelTrack(settings={})
+    with pytest.raises(AttributeError) as exc:
+        m.profile_increment({ProfileProperties.dollar_name: "FooBar"})
+    assert (
+        str(exc.value)
+        == "distinct_id must be set before you can send events or set properties"
+    )
+
+    # fail if property is not a member of mixpanel.profile_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.profile_increment({FooProfileProperties.foo: "FooBar"})
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_properties"
+    )
+
+
 @freeze_time("2018-01-01")
 def test_profile_track_charge() -> None:
     """Test the profile_track_charge method."""
     m = MixpanelTrack(
         settings={
-            "mixpanel.profile_events": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
+            "mixpanel.profile_properties": "pyramid_mixpanel.tests.test_track.FooProfileProperties"
         },
         distinct_id="foo",
     )
@@ -393,3 +543,25 @@ def test_profile_track_charge() -> None:
         "$distinct_id": "foo",
         "$append": {"$transactions": {"Foo": "Bar", "$amount": 222}},
     }
+
+
+def test_profile_track_charge_guards() -> None:
+    """Test guards that make sure parameters sent to .profile_track_charge() are good."""
+
+    # fail if distinct_id is None
+    m = MixpanelTrack(settings={})
+    with pytest.raises(AttributeError) as exc:
+        m.profile_track_charge(100, {ProfileProperties.dollar_name: "FooBar"})
+    assert (
+        str(exc.value)
+        == "distinct_id must be set before you can send events or set properties"
+    )
+
+    # fail if property is not a member of mixpanel.profile_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.profile_track_charge(100, {FooProfileProperties.foo: "FooBar"})
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_properties"
+    )

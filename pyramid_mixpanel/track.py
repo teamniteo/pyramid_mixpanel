@@ -20,8 +20,22 @@ SettingsType = t.Dict[str, t.Union[str, int, bool]]
 PropertiesType = t.Dict[Property, t.Union[str, int, bool]]
 
 
+def distinct_id_is_required(function: t.Callable) -> t.Callable:
+    """Raise AttributeError if self.distinct_id is not set on MixpanelTrack."""
+
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        if not self.distinct_id:
+            raise AttributeError(
+                "distinct_id must be set before you can send events or set properties"
+            )
+        return function(*args, **kwargs)
+
+    return wrapper
+
+
 class MixpanelTrack:
-    """Wrapper around the official `mixpanel` server-side integration of Mixpanel.
+    """Wrapper around the official `mixpanel` server-side integration for Mixpanel.
 
     You can track events and/or set people profiles. Uses
     https://pypi.python.org/pypi/mixpanel under the hood.
@@ -130,14 +144,20 @@ class MixpanelTrack:
             settings.get("mixpanel.profile_meta_properties")
         )
 
-    # TODO: decorator that verifies that events are enums and not strings
-    # TODO: decorator that distinct_id exists
+    @distinct_id_is_required
     def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
         """Track a Mixpanel event."""
         if not props:
             props = {}
 
-        # TODO: event should be member of self.events
+        if event not in self.events.__dict__.values():
+            raise ValueError(f"Event '{event}' is not a member of self.events")
+
+        for prop in props.keys():
+            if prop not in self.event_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.event_properties"
+                )
 
         self.api.track(
             self.distinct_id,
@@ -145,6 +165,7 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in props.items()},
         )
 
+    @distinct_id_is_required
     def profile_set(
         self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
     ) -> None:
@@ -157,7 +178,17 @@ class MixpanelTrack:
         if not meta:
             meta = {}
 
-        # TODO: props items should be members of self.profile_properties
+        for prop in props.keys():
+            if prop not in self.profile_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_properties"
+                )
+
+        for prop in meta.keys():
+            if prop not in self.profile_meta_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_meta_properties"
+                )
 
         self.api.people_set(
             self.distinct_id,
@@ -165,6 +196,7 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in meta.items()},
         )
 
+    @distinct_id_is_required
     def people_append(
         self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
     ) -> None:
@@ -172,24 +204,50 @@ class MixpanelTrack:
         if not meta:
             meta = {}
 
+        for prop in props.keys():
+            if prop not in self.profile_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_properties"
+                )
+
+        for prop in meta.keys():
+            if prop not in self.profile_meta_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_meta_properties"
+                )
+
         self.api.people_append(
             self.distinct_id,
             {prop.name: value for (prop, value) in props.items()},
             {prop.name: value for (prop, value) in meta.items()},
         )
 
+    @distinct_id_is_required
     def profile_increment(self, props: t.Dict[Property, int]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
+        for prop in props.keys():
+            if prop not in self.profile_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_properties"
+                )
+
         self.api.people_increment(
             self.distinct_id, {prop.name: value for (prop, value) in props.items()}
         )
 
+    @distinct_id_is_required
     def profile_track_charge(
         self, amount: int, props: t.Optional[t.Dict[Property, str]] = None
     ) -> None:
         """Wrap around api.people_track_charge to set distinct_id."""
         if not props:
             props = {}
+
+        for prop in props.keys():
+            if prop not in self.profile_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_properties"
+                )
 
         self.api.people_track_charge(
             self.distinct_id,

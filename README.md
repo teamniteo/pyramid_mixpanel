@@ -129,7 +129,7 @@ A couple of projects that use pyramid_mixpanel in production:
 # TODO:
 
 * [ ] study https://pypi.org/project/pyramid_mixpanel/0.1.65/
-* [ ] specify assumptions: request has a .user object that has .distinct_id
+* [x] specify assumptions: request has a .user object that has .distinct_id
 * [ ] stuctlog should be optional
 * [x] study https://github.com/mixpanel/mixpanel-python/blob/master/demo/subprocess_consumer.py
 * [x] CircleCI
@@ -137,7 +137,7 @@ A couple of projects that use pyramid_mixpanel in production:
 * [x] 100% types coverage
 * [x] custom Enums
 * [ ] configure background task to be scheduled
-* [ ] nicer error if dotted names are invalid
-* [ ] nicer error if user is not set
+* [x] nicer error if dotted names are invalid
+* [x] nicer error if user is not set
 * [x] flush BufferedConsumer at the end of request
 * [x] add all Mixpanel special/reserved properties (those that make sense)
