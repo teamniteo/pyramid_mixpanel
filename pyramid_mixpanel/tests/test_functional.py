@@ -33,6 +33,12 @@ def hello(request: Request) -> t.Dict[str, str]:
     return {"hello": "world"}
 
 
+@view_config(route_name="bye", renderer="json", request_method="GET")
+def bye(request: Request) -> t.Dict[str, str]:
+    """Say bye."""
+    return {"bye": "bye"}
+
+
 def app(settings) -> Router:
     """Create a dummy Pyramid app."""
     structlog.configure(
@@ -42,6 +48,7 @@ def app(settings) -> Router:
 
     with Configurator() as config:
         config.add_route("hello", "/hello")
+        config.add_route("bye", "/bye")
         config.scan(".")
 
         config.registry.settings.update(**settings)
@@ -143,3 +150,27 @@ def test_PoliteBufferedConsumer(
         "https://api.mixpanel.com/track",
         urllib.parse.urlencode(data).encode("utf8"),  # type:ignore
     )
+
+
+@mock.patch("pyramid_mixpanel.consumer.PoliteBufferedConsumer.flush")
+def test_request_mixpanel_not_used(flush: mock.MagicMock) -> None:
+    """Test that flush() is not called if request.mixpanel was never called."""
+
+    with LogCapture() as logs:
+        settings = {"mixpanel.token": "SECRET"}
+        testapp = TestApp(app(settings))
+
+        res = testapp.get("/bye", status=200)
+        assert res.json == {"bye": "bye"}
+
+    logs.check(
+        (
+            "pyramid_mixpanel",
+            "INFO",
+            "consumer='PoliteBufferedConsumer' event='Mixpanel configured' "
+            "event_properties='EventProperties' events='Events' "
+            "profile_meta_properties='ProfileMetaProperties' "
+            "profile_properties='ProfileProperties'",
+        )
+    )
+    flush.assert_not_called()
