@@ -1,5 +1,15 @@
 ## Changelog
 
+0.4.0 (2019-08-19)
+------------------
+
+* Prepare for PYPI release of the rewrite.
+  [zupo]
+
+* Small performance optimization.
+  [zupo]
+
+
 0.3.0 (2019-08-09)
 ------------------
 
