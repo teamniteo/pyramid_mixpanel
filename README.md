@@ -63,34 +63,34 @@ The reason this package exists is to provide sane defaults when integrating with
 
 1. Declare `pyramid_mixpanel` as a dependency in your Pyramid project.
 
-2. Include the following lines:
+1. Include the following lines:
 
-```python
-config.include("pyramid_mixpanel")
-```
+    ```python
+    config.include("pyramid_mixpanel")
+    ```
 
-3. Tell mixpanel_mixpanel how you want to use it:
+1. Tell mixpanel_mixpanel how you want to use it:
 
 
-```ini
-# for local development and unit testing
-# events will be stored in request.mixpanel.api._consumer.mocked_messages
-mixpanel.token = false
+    ```ini
+    # for local development and unit testing
+    # events will be stored in request.mixpanel.api._consumer.mocked_messages
+    mixpanel.token = false
 
-# minimal configuration
-mixpanel.token = <TOKEN>
+    # minimal configuration
+    mixpanel.token = <TOKEN>
 
-# enable support for querying Mixpanel data
-mixpanel.api_secret = <SECRET>
+    # enable support for querying Mixpanel data
+    mixpanel.api_secret = <SECRET>
 
-# custom events and properties
-mixpanel.events = myapp.mixpanel.Events
-mixpanel.event_properties = myapp.mixpanel.EventProperties
-mixpanel.profile_properties = myapp.mixpanel.ProfileProperties
+    # custom events and properties
+    mixpanel.events = myapp.mixpanel.Events
+    mixpanel.event_properties = myapp.mixpanel.EventProperties
+    mixpanel.profile_properties = myapp.mixpanel.ProfileProperties
 
-# defer sending of Mixpanel messages to a background task queue
-mixpanel.consumer = myapp.mixpanel.QueuedConsumer
-```
+    # defer sending of Mixpanel messages to a background task queue
+    mixpanel.consumer = myapp.mixpanel.QueuedConsumer
+    ```
 
 For view code dealing with requests, a pre-configured `request.mixpanel`
 is available.
