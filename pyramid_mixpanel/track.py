@@ -270,6 +270,14 @@ def mixpanel_flush(event: NewRequest) -> None:
 
     def flush(request: Request, response: Response) -> None:
         """Send all the enqueued messages at the end of request lifecycle."""
+
+        # If request.mixpanel was never called during request runtime, then
+        # skip initializing and flushing MixpanelTrack.
+        if "mixpanel" not in request.__dict__:
+            return
+
+        # Send all messages to Mixpanel for those consumers that require
+        # manual flushing at the end of request life-cycle.
         if getattr(request.mixpanel.api._consumer, "flush", None):  # noqa: 236
             request.mixpanel.api._consumer.flush()
 
