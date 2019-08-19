@@ -98,7 +98,25 @@ is available.
 
 ## Design defense
 
-TODO:
+The authors of `pyramid_openapi3` believe that while Mixpanel allows sending schema-less data, that can change as requirements for the project change, it is better to be precise about what "events" you send and what the properties of those events will be called. Same for "profiles". Here are the reasons that accumulated over 5 years of using Mixpanel at [Niteo](https://niteo.co):
+
+a) There will be typos in event and property names. They will clutter your Mixpanel dashboard and slow you down.
+
+b) There will be differently named events for similar actions sent from different parts of your codebase. Then in your Mixpanel dashboard you'll have `User Clicked Button` and `Button Clicked` events in you won't be sure which to use, and what's the difference between them.
+
+c) Your events and properties will not be consistently named, because they will be sent from different parts of your codebase, by different authors. Your Mixpanel dashboard will feel somewhat "broken" because some events will be in past tense (`User Logged In`), some in all lowers caps (`generated invoice`), some with only the action verb (`click`) and so on.
+
+All issues outlined above are alleviated using this package because all event & property names are defined as dataclasses, in a [single source of truth](https://github.com/niteoweb/pyramid_mixpanel/blob/eb47dcaa41e1f5de4134b066b90e9530d9318de2/pyramid_mixpanel/__init__.py#L29) manner. No typos are possible once the initial specification is done. You immediately recognize bad naming patterns because all event & property names are in a single file.
+
+## Naming best practice
+
+In order to have nice and consistent event and property names, the authors of this package suggest using the following guidelines when coming up with names:
+
+* Use the `<item> <action>` format in past tense, i.e. `Button Clicked`, `Page Viewed`, `File Downloaded`.
+* Use [Title Case](https://en.wikipedia.org/wiki/Letter_case#Title_Case).
+* Frontend only sends two Mixpanel events: `Button/Link Clicked` and `Page Viewed`. We then construct custom events such as `Password Reset Button Clicked` or `Pricing Page Viewed` inside Mixpanel dashboard based on button name, URL, etc. Custom events can be modified retroactively, regular events cannot.
+* Backend sends "action" events, when those actions finish successfully, such as `Site Deployed`, `PDF generated`, `Backup Completed`.
+
 
 ## Running tests
 
@@ -124,20 +142,3 @@ A couple of projects that use pyramid_mixpanel in production:
 - [EasyBlogNetworks](https://easyblognetworks.com) - PBN hosting and autopilot maintenance.
 - [Kafkai](https://kafkai.com) - AI generated content.
 - [Docsy](https://docsy.org/) - Faceted search for private projects and teams.
-
-
-# TODO:
-
-* [ ] study https://pypi.org/project/pyramid_mixpanel/0.1.65/
-* [x] specify assumptions: request has a .user object that has .distinct_id
-* [ ] stuctlog should be optional
-* [x] study https://github.com/mixpanel/mixpanel-python/blob/master/demo/subprocess_consumer.py
-* [x] CircleCI
-* [x] 100% test coverage
-* [x] 100% types coverage
-* [x] custom Enums
-* [ ] configure background task to be scheduled
-* [x] nicer error if dotted names are invalid
-* [x] nicer error if user is not set
-* [x] flush BufferedConsumer at the end of request
-* [x] add all Mixpanel special/reserved properties (those that make sense)
