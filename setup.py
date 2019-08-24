@@ -23,7 +23,7 @@ with open(os.path.join(here, "CHANGELOG.md"), encoding="utf-8") as f:
     long_description += "\n\n" + f.read()
 
 
-VERSION = "0.4.2"
+VERSION = "0.4.3"
 
 
 class VerifyVersionCommand(install):
@@ -66,7 +66,7 @@ setup(
     ],
     keywords="pyramid mixpanel pylons web",
     packages=find_packages(exclude=["tests"]),
-    package_data={"": ["LICENSE"]},
+    include_package_data=True,
     install_requires=["pyramid", "requests", "structlog", "mixpanel"],
     cmdclass={"verify": VerifyVersionCommand},
 )

@@ -1,2 +1,2 @@
-include *.md LICENSE py.typed
+include *.md LICENSE
 graft pyramid_mixpanel
