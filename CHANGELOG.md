@@ -1,5 +1,12 @@
 ## Changelog
 
+0.4.2 (2019-08-24)
+------------------
+
+* Include py.typed in the package, now for real.
+  [zupo]
+
+
 0.4.1 (2019-08-24)
 ------------------
 
