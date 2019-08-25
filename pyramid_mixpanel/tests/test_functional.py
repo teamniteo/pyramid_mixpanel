@@ -85,7 +85,8 @@ def test_MockedConsumer() -> None:
         ),
     )
 
-    res.app_request.mixpanel.api._consumer.mocked_messages == [
+    assert res.app_request.mixpanel.api._consumer.flushed is True
+    assert res.app_request.mixpanel.api._consumer.mocked_messages == [
         MockedMessage(
             endpoint="events",
             msg={
@@ -93,7 +94,7 @@ def test_MockedConsumer() -> None:
                 "properties": {
                     "token": "testing",
                     "distinct_id": "foo-123",
-                    "time": 1564322909,
+                    "time": 1546300800,
                     "mp_lib": "python",
                     "$lib_version": "4.4.0",
                     "Path": "/hello",

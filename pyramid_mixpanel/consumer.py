@@ -20,17 +20,24 @@ class MockedMessage:
     msg: t.Dict["str", object]
 
 
-@dataclass(frozen=True)
+@dataclass
 class MockedConsumer:
     """Save messages in an internal list, useful in unit testing."""
 
     # Internal storage of mocked message
     mocked_messages: t.List = field(default_factory=lambda: [])
 
+    # True if .flush() was called
+    flushed: bool = False
+
     def send(self, endpoint: str, json_message: str) -> None:
         """Append message to the mocked_messages list."""
         msg = MockedMessage(endpoint=endpoint, msg=json.loads(json_message))
         self.mocked_messages.append(msg)
+
+    def flush(self, *args, **kwargs) -> None:
+        """Set self.flushed to True."""
+        self.flushed = True
 
 
 class PoliteBufferedConsumer(BufferedConsumer):

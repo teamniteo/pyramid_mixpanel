@@ -21,6 +21,9 @@ def test_MockedConsumer() -> None:
     assert consumer.mocked_messages[0] == MockedMessage("events", {"foo": "Foo"})
     assert consumer.mocked_messages[1] == MockedMessage("events", {"bar": "Bar"})
 
+    consumer.flush()
+    assert consumer.flushed is True
+
 
 @mock.patch("mixpanel.BufferedConsumer.flush")
 def test_PoliteBufferedConsumer(flush: mock.MagicMock) -> None:
