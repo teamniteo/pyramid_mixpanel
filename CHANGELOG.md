@@ -1,5 +1,12 @@
 ## Changelog
 
+0.5.0 (2019-08-25)
+------------------
+
+* Require that all Consumers implement a `flush()` method.
+  [zupo]
+
+
 0.4.3 (2019-08-24)
 ------------------
 
