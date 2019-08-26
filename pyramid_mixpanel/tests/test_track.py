@@ -56,7 +56,7 @@ def test_init_consumers() -> None:
     mixpanel = MixpanelTrack(settings={"mixpanel.token": "secret"})
     assert isinstance(mixpanel.api._consumer, PoliteBufferedConsumer)  # noqa: SF01
 
-    # is token is not set, use MockedConsumer
+    # if token is not set, use MockedConsumer
     mixpanel = MixpanelTrack(settings={})
     assert mixpanel.api._consumer == MockedConsumer()  # noqa: SF01
 
@@ -69,7 +69,7 @@ def test_init_consumers() -> None:
     )
     assert isinstance(mixpanel.api._consumer, FooConsumer)  # noqa: SF01
 
-    # the resolved Conusmer need to be based off of
+    # the resolved Consumer needs to be based off of
     # mixpanel.(Buffered)Consumer to have the expected API
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
@@ -82,7 +82,7 @@ def test_init_consumers() -> None:
         == "class in dotted_name needs to be based on mixpanel.(Buffered)Consumer"
     )
 
-    # passing EventProperties as an object is not (yet) supported
+    # passing Consumer as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
             settings={"mixpanel.consumer": FooConsumer()}  # type: ignore
