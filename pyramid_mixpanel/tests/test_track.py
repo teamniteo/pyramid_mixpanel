@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from freezegun import freeze_time
+from mixpanel import Consumer
 from pyramid_mixpanel import Event
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
@@ -40,13 +41,53 @@ def test_mixpanel_init_distinct_id() -> None:
     assert result.distinct_id == "foo"
 
 
+class FooConsumer(Consumer):
+    pass
+
+
+class BarConsumer(object):
+    pass
+
+
 def test_init_consumers() -> None:
     """Test initialization of Consumer."""
-    mixpanel = MixpanelTrack(settings={"mixpanel.token": "secret"})
-    assert mixpanel.api._consumer.__class__ == PoliteBufferedConsumer
 
+    # default consumer
+    mixpanel = MixpanelTrack(settings={"mixpanel.token": "secret"})
+    assert isinstance(mixpanel.api._consumer, PoliteBufferedConsumer)  # noqa: SF01
+
+    # is token is not set, use MockedConsumer
     mixpanel = MixpanelTrack(settings={})
-    assert mixpanel.api._consumer.__class__ == MockedConsumer
+    assert mixpanel.api._consumer == MockedConsumer()  # noqa: SF01
+
+    # resolved from a dotted-name
+    mixpanel = MixpanelTrack(
+        settings={
+            "mixpanel.token": "secret",
+            "mixpanel.consumer": "pyramid_mixpanel.tests.test_track.FooConsumer",
+        }
+    )
+    assert isinstance(mixpanel.api._consumer, FooConsumer)  # noqa: SF01
+
+    # the resolved Conusmer need to be based off of
+    # mixpanel.(Buffered)Consumer to have the expected API
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            settings={
+                "mixpanel.consumer": "pyramid_mixpanel.tests.test_track.BarConsumer"
+            }
+        )
+    assert (
+        str(exc.value)
+        == "class in dotted_name needs to be based on mixpanel.(Buffered)Consumer"
+    )
+
+    # passing EventProperties as an object is not (yet) supported
+    with pytest.raises(ValueError) as exc:
+        mixpanel = MixpanelTrack(
+            settings={"mixpanel.consumer": FooConsumer()}  # type: ignore
+        )
+    assert str(exc.value) == "dotted_name must be a string, but it is: FooConsumer"
 
 
 @dataclass(frozen=True)
