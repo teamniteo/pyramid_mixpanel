@@ -1,5 +1,12 @@
 ## Changelog
 
+0.6.0 (2019-08-26)
+------------------
+
+* Added support for configuring a custom Consumer.
+  [zupo]
+
+
 0.5.0 (2019-08-25)
 ------------------
 
