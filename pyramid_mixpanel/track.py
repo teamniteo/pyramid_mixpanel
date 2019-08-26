@@ -1,5 +1,7 @@
 """Tracking user events and profiles."""
 
+from mixpanel import BufferedConsumer
+from mixpanel import Consumer
 from mixpanel import Mixpanel
 from pyramid.events import NewRequest
 from pyramid.path import DottedNameResolver
@@ -50,7 +52,7 @@ class MixpanelTrack:
 
     @staticmethod
     def _resolve_events(dotted_name: t.Optional[object] = None) -> Events:
-        """Resolve a dotted-name into an Events object and set it to self.events."""
+        """Resolve a dotted-name into an Events object."""
         if not dotted_name:
             return Events()
         if not isinstance(dotted_name, str):
@@ -69,7 +71,7 @@ class MixpanelTrack:
     def _resolve_event_properties(
         dotted_name: t.Optional[object] = None
     ) -> EventProperties:
-        """Resolve a dotted-name into an EventProperties object and set it to self.event_properties."""
+        """Resolve a dotted-name into an EventProperties object."""
         if not dotted_name:
             return EventProperties()
         if not isinstance(dotted_name, str):
@@ -88,7 +90,7 @@ class MixpanelTrack:
     def _resolve_profile_properties(
         dotted_name: t.Optional[object] = None
     ) -> ProfileProperties:
-        """Resolve a dotted-name into an ProfileProperties object and set it to self.profile_properties."""
+        """Resolve a dotted-name into an ProfileProperties object."""
         if not dotted_name:
             return ProfileProperties()
         if not isinstance(dotted_name, str):
@@ -107,7 +109,7 @@ class MixpanelTrack:
     def _resolve_profile_meta_properties(
         dotted_name: t.Optional[object] = None
     ) -> ProfileMetaProperties:
-        """Resolve a dotted-name into an ProfileMetaProperties object and set it to self.profile_meta_properties."""
+        """Resolve a dotted-name into an ProfileMetaProperties object."""
         if not dotted_name:
             return ProfileMetaProperties()
         if not isinstance(dotted_name, str):
@@ -122,16 +124,28 @@ class MixpanelTrack:
                 )
             return resolved()
 
+    @staticmethod
+    def _resolve_consumer(dotted_name: t.Optional[object] = None) -> Consumer:
+        """Resolve a dotted-name into a Consumer object."""
+        if not dotted_name:
+            return PoliteBufferedConsumer()
+        if not isinstance(dotted_name, str):
+            raise ValueError(
+                f"dotted_name must be a string, but it is: {dotted_name.__class__.__name__}"
+            )
+        else:
+            resolved = DottedNameResolver().resolve(dotted_name)
+            if not (
+                issubclass(resolved, Consumer) or issubclass(resolved, BufferedConsumer)
+            ):
+                raise ValueError(
+                    f"class in dotted_name needs to be based on mixpanel.(Buffered)Consumer"
+                )
+            return resolved()
+
     def __init__(self, settings: SettingsType, distinct_id=None) -> None:
         """Initialize API connector."""
         self.distinct_id = distinct_id
-
-        if settings.get("mixpanel.token"):
-            self.api = Mixpanel(
-                token=settings["mixpanel.token"], consumer=PoliteBufferedConsumer()
-            )
-        else:
-            self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
 
         self.events = self._resolve_events(settings.get("mixpanel.events"))
         self.event_properties = self._resolve_event_properties(
@@ -143,6 +157,12 @@ class MixpanelTrack:
         self.profile_meta_properties = self._resolve_profile_meta_properties(
             settings.get("mixpanel.profile_meta_properties")
         )
+
+        consumer = self._resolve_consumer(settings.get("mixpanel.consumer"))
+        if settings.get("mixpanel.token"):
+            self.api = Mixpanel(token=settings["mixpanel.token"], consumer=consumer)
+        else:
+            self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
 
     @distinct_id_is_required
     def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
