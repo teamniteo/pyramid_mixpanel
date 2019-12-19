@@ -173,7 +173,7 @@ class MixpanelTrack:
         if event not in self.events.__dict__.values():
             raise ValueError(f"Event '{event}' is not a member of self.events")
 
-        for prop in props.keys():
+        for prop in props:
             if prop not in self.event_properties.__dict__.values():
                 raise ValueError(
                     f"Property '{prop}' is not a member of self.event_properties"
@@ -198,13 +198,13 @@ class MixpanelTrack:
         if not meta:
             meta = {}
 
-        for prop in props.keys():
+        for prop in props:
             if prop not in self.profile_properties.__dict__.values():
                 raise ValueError(
                     f"Property '{prop}' is not a member of self.profile_properties"
                 )
 
-        for prop in meta.keys():
+        for prop in meta:
             if prop not in self.profile_meta_properties.__dict__.values():
                 raise ValueError(
                     f"Property '{prop}' is not a member of self.profile_meta_properties"
@@ -224,13 +224,13 @@ class MixpanelTrack:
         if not meta:
             meta = {}
 
-        for prop in props.keys():
+        for prop in props:
             if prop not in self.profile_properties.__dict__.values():
                 raise ValueError(
                     f"Property '{prop}' is not a member of self.profile_properties"
                 )
 
-        for prop in meta.keys():
+        for prop in meta:
             if prop not in self.profile_meta_properties.__dict__.values():
                 raise ValueError(
                     f"Property '{prop}' is not a member of self.profile_meta_properties"
@@ -275,7 +275,7 @@ class MixpanelTrack:
     @distinct_id_is_required
     def profile_increment(self, props: t.Dict[Property, int]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
-        for prop in props.keys():
+        for prop in props:
             if prop not in self.profile_properties.__dict__.values():
                 raise ValueError(
                     f"Property '{prop}' is not a member of self.profile_properties"
@@ -293,7 +293,7 @@ class MixpanelTrack:
         if not props:
             props = {}
 
-        for prop in props.keys():
+        for prop in props:
             if prop not in self.profile_properties.__dict__.values():
                 raise ValueError(
                     f"Property '{prop}' is not a member of self.profile_properties"
