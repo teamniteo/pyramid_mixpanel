@@ -513,6 +513,86 @@ def test_people_append_guards() -> None:
 
 
 @freeze_time("2018-01-01")
+def test_people_union() -> None:
+    """Test the people_union method."""
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+
+    m.people_union({ProfileProperties.dollar_name: ["FooBar"]})
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "foo",
+        "$union": {"$name": ["FooBar"]},
+    }
+
+    # with meta properties
+    m.people_union(
+        {ProfileProperties.dollar_name: ["FooBar2"]},
+        meta={ProfileMetaProperties.dollar_ip: ["1.1.1.1"]},
+    )
+    assert len(m.api._consumer.mocked_messages) == 2
+    assert m.api._consumer.mocked_messages[1].endpoint == "people"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "$token": "testing",
+        "$time": 1514764800000,
+        "$distinct_id": "foo",
+        "$union": {"$name": ["FooBar2"]},
+        "$ip": ["1.1.1.1"],
+    }
+
+
+def test_people_union_guards() -> None:
+    """Test guards that make sure parameters sent to .people_union() are good."""
+
+    # fail if distinct_id is None
+    m = MixpanelTrack(settings={})
+    with pytest.raises(AttributeError) as exc:
+        m.people_union({ProfileProperties.dollar_name: ["FooBar"]})
+    assert (
+        str(exc.value)
+        == "distinct_id must be set before you can send events or set properties"
+    )
+
+    # fail if property is not a member of mixpanel.profile_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.people_union({FooProfileProperties.foo: ["FooBar"]})
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_properties"
+    )
+
+    # fail if property's value is not a list
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(TypeError) as exc:
+        m.people_union({ProfileProperties.dollar_name: "FooBar"})
+    assert str(exc.value) == "Property 'Property(name='$name')' value is not a list"
+
+    # fail if meta property is not a member of mixpanel.profile_meta_properties
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(ValueError) as exc:
+        m.people_union(
+            {ProfileProperties.dollar_name: ["foo"]},
+            meta={FooProfileMetaProperties.foo: ["bar"]},
+        )
+    assert (
+        str(exc.value)
+        == "Property 'Property(name='Foo')' is not a member of self.profile_meta_properties"
+    )
+
+    # fail if meta property's value is not a list
+    m = MixpanelTrack(settings={}, distinct_id="foo")
+    with pytest.raises(TypeError) as exc:
+        m.people_union(
+            {ProfileProperties.dollar_name: ["foo"]},
+            meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
+        )
+    assert str(exc.value) == "Property 'Property(name='$ip')' value is not a list"
+
+
+@freeze_time("2018-01-01")
 def test_profile_increment() -> None:
     """Test the profile_increment method."""
     m = MixpanelTrack(
