@@ -19,4 +19,4 @@ Git branches and their purpose and status at the time of this writing are listed
 
 ## Prerequisites
 
-Follow the instructions in [README.rst](https://github.com/niteoweb/pyramid_mixpanel/) to install the tools needed to run the project.
+Follow the instructions in [README.md](https://github.com/niteoweb/pyramid_mixpanel/) to install the tools needed to run the project.
