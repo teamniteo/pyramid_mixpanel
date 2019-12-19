@@ -243,6 +243,36 @@ class MixpanelTrack:
         )
 
     @distinct_id_is_required
+    def people_union(
+        self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
+    ) -> None:
+        """Wrap around api.people_union to set properties."""
+        if not meta:
+            meta = {}
+
+        for prop in props:
+            if prop not in self.profile_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_properties"
+                )
+            if not isinstance(props[prop], list):
+                raise TypeError(f"Property '{prop}' value is not a list")
+
+        for prop in meta:
+            if prop not in self.profile_meta_properties.__dict__.values():
+                raise ValueError(
+                    f"Property '{prop}' is not a member of self.profile_meta_properties"
+                )
+            if not isinstance(meta[prop], list):
+                raise TypeError(f"Property '{prop}' value is not a list")
+
+        self.api.people_union(
+            self.distinct_id,
+            {prop.name: value for (prop, value) in props.items()},
+            {prop.name: value for (prop, value) in meta.items()},
+        )
+
+    @distinct_id_is_required
     def profile_increment(self, props: t.Dict[Property, int]) -> None:
         """Wrap around api.people_increment to set distinct_id."""
         for prop in props.keys():
