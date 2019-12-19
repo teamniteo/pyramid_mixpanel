@@ -1,5 +1,15 @@
 ## Changelog
 
+0.7.0 (2019-12-19)
+------------------
+
+* Added support for `people_union()`.
+  [am-on]
+
+* Added `sayanarijit/typecov`.
+  [sayanarijit]
+
+
 0.6.0 (2019-08-26)
 ------------------
 
