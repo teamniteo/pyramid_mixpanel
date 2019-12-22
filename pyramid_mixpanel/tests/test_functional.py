@@ -96,7 +96,7 @@ def test_MockedConsumer() -> None:
                     "distinct_id": "foo-123",
                     "time": 1546300800,
                     "mp_lib": "python",
-                    "$lib_version": "4.4.0",
+                    "$lib_version": "4.5.0",
                     "Path": "/hello",
                 },
             },
@@ -107,7 +107,7 @@ def test_MockedConsumer() -> None:
 @freeze_time("2019-01-01")
 @mock.patch("mixpanel.urllib.request.urlopen")
 @mock.patch("mixpanel.urllib.request.Request")
-def test_PoliteBufferedConsumer(
+def test_PoliteBufferedConsumera(
     request: mock.MagicMock, urlopen: mock.MagicMock
 ) -> None:
     """Test that request.mixpanel works as expected with PoliteBufferedConsumer."""
@@ -140,7 +140,7 @@ def test_PoliteBufferedConsumer(
                     "distinct_id": "foo-123",
                     "time": 1546300800,
                     "mp_lib": "python",
-                    "$lib_version": "4.4.0",
+                    "$lib_version": "4.5.0",
                     "Path": "/hello",
                 },
             }

@@ -41,6 +41,7 @@ def test_PoliteBufferedConsumer(flush: mock.MagicMock) -> None:
     assert consumer._buffers == {  # noqa: SF01
         "events": ['{"foo":"Foo"}', '{"bar":"Bar"}'],
         "people": [],
+        "groups": [],
         "imports": [],
     }
 
