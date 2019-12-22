@@ -220,8 +220,8 @@ def test_init_profile_properties() -> None:
     # passing ProfileProperties as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            settings={  # type: ignore
-                "mixpanel.profile_properties": FooProfileProperties()
+            settings={
+                "mixpanel.profile_properties": FooProfileProperties()  # type: ignore
             }
         )
     assert (
@@ -271,8 +271,8 @@ def test_init_profile_meta_properties() -> None:
     # passing ProfileMetaProperties as an object is not (yet) supported
     with pytest.raises(ValueError) as exc:
         mixpanel = MixpanelTrack(
-            settings={  # type: ignore
-                "mixpanel.profile_meta_properties": FooProfileMetaProperties()
+            settings={
+                "mixpanel.profile_meta_properties": FooProfileMetaProperties()  # type: ignore
             }
         )
     assert (
@@ -297,7 +297,7 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,  # 2018-01-01
             "mp_lib": "python",
-            "$lib_version": "4.4.0",
+            "$lib_version": "4.5.0",
         },
     }
     m.api._consumer.mocked_messages.clear()
@@ -320,7 +320,7 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,  # 2018-01-01
             "mp_lib": "python",
-            "$lib_version": "4.4.0",
+            "$lib_version": "4.5.0",
             "$referrer": "https://niteo.co",
             "Path": "/about",
             "Title": "About Us",
@@ -346,7 +346,7 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,
             "mp_lib": "python",
-            "$lib_version": "4.4.0",
+            "$lib_version": "4.5.0",
             "Foo": "bar",
         },
     }
