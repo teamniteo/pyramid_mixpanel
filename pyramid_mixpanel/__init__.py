@@ -34,8 +34,8 @@ class Events:
     when they are trying to decipher what's the difference between
     "Page Load", "User Visited" and "Viewed Page".
 
-    So we're only allowing properties listed below. You can provide your own
-    list of properties via the `mixpanel.events` setting.
+    So we're only allowing events listed below. You can provide your own
+    list of events via the `mixpanel.events` setting.
     """
 
     # Any page view should be tracked with this event. More specific events

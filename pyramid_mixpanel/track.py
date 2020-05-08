@@ -16,7 +16,10 @@ from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
 from pyramid_mixpanel.consumer import PoliteBufferedConsumer
 
+import structlog
 import typing as t
+
+logger = structlog.get_logger(__name__)
 
 SettingsType = t.Dict[str, t.Union[str, int, bool]]
 PropertiesType = t.Dict[Property, t.Union[str, int, bool]]
@@ -47,6 +50,7 @@ class MixpanelTrack:
 
     events: Events
     event_properties: EventProperties
+    global_event_props: PropertiesType
     profile_properties: ProfileProperties
     profile_meta_properties: ProfileMetaProperties
 
@@ -69,7 +73,7 @@ class MixpanelTrack:
 
     @staticmethod
     def _resolve_event_properties(
-        dotted_name: t.Optional[object] = None
+        dotted_name: t.Optional[object] = None,
     ) -> EventProperties:
         """Resolve a dotted-name into an EventProperties object."""
         if not dotted_name:
@@ -88,7 +92,7 @@ class MixpanelTrack:
 
     @staticmethod
     def _resolve_profile_properties(
-        dotted_name: t.Optional[object] = None
+        dotted_name: t.Optional[object] = None,
     ) -> ProfileProperties:
         """Resolve a dotted-name into an ProfileProperties object."""
         if not dotted_name:
@@ -107,7 +111,7 @@ class MixpanelTrack:
 
     @staticmethod
     def _resolve_profile_meta_properties(
-        dotted_name: t.Optional[object] = None
+        dotted_name: t.Optional[object] = None,
     ) -> ProfileMetaProperties:
         """Resolve a dotted-name into an ProfileMetaProperties object."""
         if not dotted_name:
@@ -143,7 +147,9 @@ class MixpanelTrack:
                 )
             return resolved()
 
-    def __init__(self, settings: SettingsType, distinct_id=None) -> None:
+    def __init__(
+        self, settings: SettingsType, distinct_id=None, global_event_props=None
+    ) -> None:
         """Initialize API connector."""
         self.distinct_id = distinct_id
 
@@ -164,15 +170,21 @@ class MixpanelTrack:
         else:
             self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
 
+        if global_event_props:
+            self.global_event_props = global_event_props
+        else:
+            self.global_event_props = {}
+
     @distinct_id_is_required
     def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
         """Track a Mixpanel event."""
-        if not props:
-            props = {}
-
         if event not in self.events.__dict__.values():
             raise ValueError(f"Event '{event}' is not a member of self.events")
 
+        if props:
+            props = {**self.global_event_props, **props}
+        else:
+            props = self.global_event_props
         for prop in props:
             if prop not in self.event_properties.__dict__.values():
                 raise ValueError(
@@ -312,7 +324,30 @@ def mixpanel_init(request: Request) -> MixpanelTrack:
     if getattr(request, "user", None):
         distinct_id = request.user.distinct_id
 
-    return MixpanelTrack(settings=request.registry.settings, distinct_id=distinct_id)
+    mixpanel = MixpanelTrack(
+        settings=request.registry.settings, distinct_id=distinct_id
+    )
+
+    # Global event properties can be set from HTTP headers using
+    # `X-Mixpanel-` prefix.
+    #
+    # Request with `X-Mixpanel-Foo: bar` header will set
+    # `Foo` property for all events tracked in the lifetime of the request.
+    event_props_from_header = {}
+    for header in request.headers:
+        if header.startswith("X-Mixpanel-"):
+            property_name = header.replace("X-Mixpanel-", "").lower()
+            event_prop = getattr(mixpanel.event_properties, property_name, None)
+            if event_prop is not None:
+                event_props_from_header[event_prop] = request.headers[header]
+            else:
+                logger.warning(
+                    f"Property '{property_name}', from request header '{header}'"
+                    " is not a member of event_properties"
+                )
+    mixpanel.global_event_props = event_props_from_header
+
+    return mixpanel
 
 
 def mixpanel_flush(event: NewRequest) -> None:
