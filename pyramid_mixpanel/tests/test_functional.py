@@ -153,6 +153,61 @@ def test_PoliteBufferedConsumera(
     )
 
 
+@freeze_time("2019-01-01")
+def test_header_event_props() -> None:
+    """Test that event properties from header are added to the event."""
+    with LogCapture() as logs:
+        testapp = TestApp(app({}))
+
+        res = testapp.get(
+            "/hello",
+            headers={"X-Mixpanel-Title": "hello", "X-Mixpanel-Foo": "bar"},
+            status=200,
+        )
+        assert res.json == {"hello": "world"}
+
+    logs.check(
+        (
+            "pyramid_mixpanel",
+            "INFO",
+            "consumer='MockedConsumer' event='Mixpanel configured' "
+            "event_properties='EventProperties' events='Events' "
+            "profile_meta_properties='ProfileMetaProperties' "
+            "profile_properties='ProfileProperties'",
+        ),
+        (
+            "pyramid_mixpanel",
+            "WARNING",
+            "event='Mixpanel is in testing mode, no message will be sent!'",
+        ),
+        (
+            "pyramid_mixpanel.track",
+            "WARNING",
+            "event=\"Property 'foo', from request header 'X-Mixpanel-Foo' is not a "
+            'member of event_properties"',
+        ),
+    )
+
+    assert res.app_request.mixpanel.api._consumer.flushed is True
+    assert res.app_request.mixpanel.api._consumer.mocked_messages == [
+        MockedMessage(
+            endpoint="events",
+            msg={
+                "event": "Page Viewed",
+                "properties": {
+                    "token": "testing",
+                    "distinct_id": "foo-123",
+                    "time": 1546300800,
+                    "mp_lib": "python",
+                    "$lib_version": "4.5.0",
+                    "Path": "/hello",
+                    "Title": "hello",
+                },
+            },
+        )
+    ]
+
+
 @mock.patch("pyramid_mixpanel.consumer.PoliteBufferedConsumer.flush")
 def test_request_mixpanel_not_used(flush: mock.MagicMock) -> None:
     """Test that flush() is not called if request.mixpanel was never called."""

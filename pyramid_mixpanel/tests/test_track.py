@@ -22,8 +22,9 @@ def test_mixpanel_init_distinct_id() -> None:
     from pyramid_mixpanel.track import mixpanel_init
 
     # Requests without request.user
-    request = mock.Mock(spec="registry".split())
+    request = mock.Mock(spec="registry headers".split())
     request.registry.settings = {}
+    request.headers = {}
 
     result = mixpanel_init(request)
 
@@ -31,8 +32,9 @@ def test_mixpanel_init_distinct_id() -> None:
     assert result.distinct_id is None
 
     # Requests with request.user
-    request = mock.Mock(spec="registry user".split())
+    request = mock.Mock(spec="registry headers user".split())
     request.registry.settings = {}
+    request.headers = {}
     request.user.distinct_id = "foo"
 
     result = mixpanel_init(request)
@@ -348,6 +350,59 @@ def test_track() -> None:
             "mp_lib": "python",
             "$lib_version": "4.5.0",
             "Foo": "bar",
+        },
+    }
+
+    m.api._consumer.mocked_messages.clear()
+
+    # global event property is added to all events
+    m = MixpanelTrack(
+        settings={
+            "mixpanel.events": "pyramid_mixpanel.tests.test_track.FooEvents",
+            "mixpanel.event_properties": "pyramid_mixpanel.tests.test_track.FooEventProperties",
+        },
+        distinct_id="foo",
+        global_event_props={FooEventProperties.foo: "bar"},
+    )
+    m.track(FooEvents.foo, {})
+    m.track(FooEvents.foo, {})
+    # override global event property
+    m.track(FooEvents.foo, {FooEventProperties.foo: "baz"})
+    assert len(m.api._consumer.mocked_messages) == 3
+    assert m.api._consumer.mocked_messages[0].endpoint == "events"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "event": "Foo",
+        "properties": {
+            "token": "testing",
+            "distinct_id": "foo",
+            "time": 1514764800,
+            "mp_lib": "python",
+            "$lib_version": "4.5.0",
+            "Foo": "bar",
+        },
+    }
+    assert m.api._consumer.mocked_messages[1].endpoint == "events"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "event": "Foo",
+        "properties": {
+            "token": "testing",
+            "distinct_id": "foo",
+            "time": 1514764800,
+            "mp_lib": "python",
+            "$lib_version": "4.5.0",
+            "Foo": "bar",
+        },
+    }
+    assert m.api._consumer.mocked_messages[2].endpoint == "events"
+    assert m.api._consumer.mocked_messages[2].msg == {
+        "event": "Foo",
+        "properties": {
+            "token": "testing",
+            "distinct_id": "foo",
+            "time": 1514764800,
+            "mp_lib": "python",
+            "$lib_version": "4.5.0",
+            "Foo": "baz",
         },
     }
 
