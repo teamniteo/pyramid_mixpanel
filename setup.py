@@ -67,6 +67,6 @@ setup(
     keywords="pyramid mixpanel pylons web",
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
-    install_requires=["pyramid", "requests", "structlog", "mixpanel"],
+    install_requires=["pyramid", "requests", "mixpanel"],
     cmdclass={"verify": VerifyVersionCommand},
 )

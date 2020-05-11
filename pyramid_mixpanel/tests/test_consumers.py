@@ -33,7 +33,7 @@ def test_PoliteBufferedConsumer(flush: mock.MagicMock) -> None:
         logger_factory=structlog.stdlib.LoggerFactory(),
     )
 
-    consumer = PoliteBufferedConsumer()
+    consumer = PoliteBufferedConsumer(use_structlog=True)
 
     consumer.send(endpoint="events", json_message='{"foo":"Foo"}')
     consumer.send(endpoint="events", json_message='{"bar":"Bar"}')
@@ -58,4 +58,13 @@ def test_PoliteBufferedConsumer(flush: mock.MagicMock) -> None:
             "ERROR",
             "event='It seems like Mixpanel is down.' exc_info=True",
         )
+    )
+
+    consumer = PoliteBufferedConsumer()
+    with LogCapture() as logs:
+        flush.side_effect = URLError("foo")
+        consumer.flush()
+
+    logs.check(
+        ("pyramid_mixpanel.consumer", "ERROR", "It seems like Mixpanel is down.")
     )

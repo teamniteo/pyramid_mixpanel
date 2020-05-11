@@ -6,10 +6,7 @@ from mixpanel import BufferedConsumer
 from urllib.error import URLError
 
 import json
-import structlog
 import typing as t
-
-logger = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -47,12 +44,26 @@ class PoliteBufferedConsumer(BufferedConsumer):
     https://github.com/mixpanel/mixpanel-python/issues/36#issuecomment-72063207
     """
 
+    def __init__(self, use_structlog: t.Optional[bool] = False, *args, **kwargs):
+        """Initialize PoliteBufferedConsumer."""
+        super().__init__(*args, **kwargs)
+        self.use_structlog = use_structlog
+
     def flush(self, *args, **kwargs) -> None:
         """Try to send updates to Mixpanel."""
         try:
             super(PoliteBufferedConsumer, self).flush(*args, **kwargs)
         except URLError:
-            logger.exception("It seems like Mixpanel is down.", exc_info=True)
+            if self.use_structlog:
+                import structlog
+
+                logger = structlog.get_logger(__name__)
+                logger.exception("It seems like Mixpanel is down.", exc_info=True)
+            else:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.exception("It seems like Mixpanel is down.", exc_info=True)
 
 
 @dataclass(frozen=True)
