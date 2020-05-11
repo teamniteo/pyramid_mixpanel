@@ -1,5 +1,15 @@
 ## Changelog
 
+0.8.0 (2020-05-11)
+------------------
+
+* Make structlog optional.
+  [am-on]
+
+* Support setting event props from HTTP headers.
+  [am-on]
+
+
 0.7.0 (2019-12-19)
 ------------------
 
