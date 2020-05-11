@@ -11,10 +11,6 @@ from dataclasses import dataclass
 from pyramid.config import Configurator
 from pyramid.events import NewRequest
 
-import structlog
-
-logger = structlog.get_logger(__name__)
-
 
 @dataclass(frozen=True)
 class Event:
@@ -168,16 +164,36 @@ def includeme(config: Configurator) -> None:
     from pyramid_mixpanel.consumer import MockedConsumer
 
     mixpanel = MixpanelTrack(settings=config.registry.settings)
-    logger.info(
-        "Mixpanel configured",
-        consumer=mixpanel.api._consumer.__class__.__name__,
-        events=mixpanel.events.__class__.__name__,
-        event_properties=mixpanel.event_properties.__class__.__name__,
-        profile_properties=mixpanel.profile_properties.__class__.__name__,
-        profile_meta_properties=mixpanel.profile_meta_properties.__class__.__name__,
-    )
-    if mixpanel.api._consumer.__class__ == MockedConsumer:
-        logger.warning("Mixpanel is in testing mode, no message will be sent!")
+    if config.registry.settings.get("pyramid_heroku.structlog"):
+        import structlog
+
+        logger = structlog.get_logger(__name__)
+        logger.info(
+            "Mixpanel configured",
+            consumer=mixpanel.api._consumer.__class__.__name__,
+            events=mixpanel.events.__class__.__name__,
+            event_properties=mixpanel.event_properties.__class__.__name__,
+            profile_properties=mixpanel.profile_properties.__class__.__name__,
+            profile_meta_properties=mixpanel.profile_meta_properties.__class__.__name__,
+        )
+        if mixpanel.api._consumer.__class__ == MockedConsumer:
+            logger.warning("Mixpanel is in testing mode, no message will be sent!")
+
+    else:
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        logger.info(
+            "Mixpanel configured "
+            f"consumer={mixpanel.api._consumer.__class__.__name__}, "
+            f"events={mixpanel.events.__class__.__name__}, "
+            f"event_properties={mixpanel.event_properties.__class__.__name__}, "
+            f"profile_properties={mixpanel.profile_properties.__class__.__name__}, "
+            f"profile_meta_properties={mixpanel.profile_meta_properties.__class__.__name__}"
+        )
+        if mixpanel.api._consumer.__class__ == MockedConsumer:
+            logger.warning("Mixpanel is in testing mode, no message will be sent!")
 
     config.add_request_method(mixpanel_init, "mixpanel", reify=True)
     config.add_subscriber(mixpanel_flush, NewRequest)

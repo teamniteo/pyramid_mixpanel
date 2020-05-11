@@ -16,10 +16,7 @@ from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
 from pyramid_mixpanel.consumer import PoliteBufferedConsumer
 
-import structlog
 import typing as t
-
-logger = structlog.get_logger(__name__)
 
 SettingsType = t.Dict[str, t.Union[str, int, bool]]
 PropertiesType = t.Dict[Property, t.Union[str, int, bool]]
@@ -129,10 +126,12 @@ class MixpanelTrack:
             return resolved()
 
     @staticmethod
-    def _resolve_consumer(dotted_name: t.Optional[object] = None) -> Consumer:
+    def _resolve_consumer(
+        dotted_name: t.Optional[object] = None, use_structlog: t.Optional[bool] = False
+    ) -> Consumer:
         """Resolve a dotted-name into a Consumer object."""
         if not dotted_name:
-            return PoliteBufferedConsumer()
+            return PoliteBufferedConsumer(use_structlog)
         if not isinstance(dotted_name, str):
             raise ValueError(
                 f"dotted_name must be a string, but it is: {dotted_name.__class__.__name__}"
@@ -164,7 +163,10 @@ class MixpanelTrack:
             settings.get("mixpanel.profile_meta_properties")
         )
 
-        consumer = self._resolve_consumer(settings.get("mixpanel.consumer"))
+        use_structlog = settings.get("pyramid_heroku.structlog", False) is True
+        consumer = self._resolve_consumer(
+            settings.get("mixpanel.consumer"), use_structlog
+        )
         if settings.get("mixpanel.token"):
             self.api = Mixpanel(token=settings["mixpanel.token"], consumer=consumer)
         else:
@@ -341,10 +343,22 @@ def mixpanel_init(request: Request) -> MixpanelTrack:
             if event_prop is not None:
                 event_props_from_header[event_prop] = request.headers[header]
             else:
-                logger.warning(
-                    f"Property '{property_name}', from request header '{header}'"
-                    " is not a member of event_properties"
-                )
+                if request.registry.settings.get("pyramid_heroku.structlog"):
+                    import structlog
+
+                    logger = structlog.get_logger(__name__)
+                    logger.warning(
+                        f"Property '{property_name}', from request header '{header}'"
+                        " is not a member of event_properties"
+                    )
+                else:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Property '{property_name}', from request header '{header}'"
+                        " is not a member of event_properties"
+                    )
     mixpanel.global_event_props = event_props_from_header
 
     return mixpanel

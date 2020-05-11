@@ -61,7 +61,7 @@ def app(settings) -> Router:
 def test_MockedConsumer() -> None:
     """Test that request.mixpanel works as expected with MockedConsumer."""
     with LogCapture() as logs:
-        testapp = TestApp(app({}))
+        testapp = TestApp(app({"pyramid_heroku.structlog": True}))
 
         # do two requests to make sure logs are not flooded with messages
         # on every request
@@ -107,14 +107,14 @@ def test_MockedConsumer() -> None:
 @freeze_time("2019-01-01")
 @mock.patch("mixpanel.urllib.request.urlopen")
 @mock.patch("mixpanel.urllib.request.Request")
-def test_PoliteBufferedConsumera(
+def test_PoliteBufferedConsumer(
     request: mock.MagicMock, urlopen: mock.MagicMock
 ) -> None:
     """Test that request.mixpanel works as expected with PoliteBufferedConsumer."""
     urlopen().read.return_value = b'{"error":null,"status":1}'
 
     with LogCapture() as logs:
-        settings = {"mixpanel.token": "SECRET"}
+        settings = {"mixpanel.token": "SECRET", "pyramid_heroku.structlog": True}
         testapp = TestApp(app(settings))
 
         res = testapp.get("/hello", status=200)
@@ -152,12 +152,50 @@ def test_PoliteBufferedConsumera(
         urllib.parse.urlencode(data).encode("utf8"),  # type:ignore
     )
 
+    with LogCapture() as logs:
+        settings = {"mixpanel.token": "SECRET", "pyramid_heroku.structlog": False}
+        testapp = TestApp(app(settings))
+
+        res = testapp.get("/hello", status=200)
+        assert res.json == {"hello": "world"}
+
+    logs.check(
+        (
+            "pyramid_mixpanel",
+            "INFO",
+            "Mixpanel configured consumer=PoliteBufferedConsumer, events=Events, "
+            "event_properties=EventProperties, profile_properties=ProfileProperties, "
+            "profile_meta_properties=ProfileMetaProperties",
+        )
+    )
+
+    message = json_dumps(
+        [
+            {
+                "event": "Page Viewed",
+                "properties": {
+                    "token": "SECRET",
+                    "distinct_id": "foo-123",
+                    "time": 1546300800,
+                    "mp_lib": "python",
+                    "$lib_version": "4.5.0",
+                    "Path": "/hello",
+                },
+            }
+        ]
+    )
+    data = {"data": base64.b64encode(message.encode("utf8")), "verbose": 1, "ip": 0}
+    request.assert_called_with(
+        "https://api.mixpanel.com/track",
+        urllib.parse.urlencode(data).encode("utf8"),  # type:ignore
+    )
+
 
 @freeze_time("2019-01-01")
 def test_header_event_props() -> None:
     """Test that event properties from header are added to the event."""
     with LogCapture() as logs:
-        testapp = TestApp(app({}))
+        testapp = TestApp(app({"pyramid_heroku.structlog": True}))
 
         res = testapp.get(
             "/hello",
@@ -207,13 +245,62 @@ def test_header_event_props() -> None:
         )
     ]
 
+    with LogCapture() as logs:
+        testapp = TestApp(app({}))
+
+        res = testapp.get(
+            "/hello",
+            headers={"X-Mixpanel-Title": "hello", "X-Mixpanel-Foo": "bar"},
+            status=200,
+        )
+        assert res.json == {"hello": "world"}
+
+    logs.check(
+        (
+            "pyramid_mixpanel",
+            "INFO",
+            "Mixpanel configured consumer=MockedConsumer, events=Events, "
+            "event_properties=EventProperties, profile_properties=ProfileProperties, "
+            "profile_meta_properties=ProfileMetaProperties",
+        ),
+        (
+            "pyramid_mixpanel",
+            "WARNING",
+            "Mixpanel is in testing mode, no message will be sent!",
+        ),
+        (
+            "pyramid_mixpanel.track",
+            "WARNING",
+            "Property 'foo', from request header 'X-Mixpanel-Foo' is not a member of "
+            "event_properties",
+        ),
+    )
+    assert res.app_request.mixpanel.api._consumer.flushed is True
+    assert res.app_request.mixpanel.api._consumer.mocked_messages == [
+        MockedMessage(
+            endpoint="events",
+            msg={
+                "event": "Page Viewed",
+                "properties": {
+                    "token": "testing",
+                    "distinct_id": "foo-123",
+                    "time": 1546300800,
+                    "mp_lib": "python",
+                    "$lib_version": "4.5.0",
+                    "Path": "/hello",
+                    "Title": "hello",
+                },
+            },
+        )
+    ]
+
 
 @mock.patch("pyramid_mixpanel.consumer.PoliteBufferedConsumer.flush")
 def test_request_mixpanel_not_used(flush: mock.MagicMock) -> None:
     """Test that flush() is not called if request.mixpanel was never called."""
 
     with LogCapture() as logs:
-        settings = {"mixpanel.token": "SECRET"}
+        settings = {"mixpanel.token": "SECRET", "pyramid_heroku.structlog": True}
         testapp = TestApp(app(settings))
 
         res = testapp.get("/bye", status=200)

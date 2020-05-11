@@ -90,6 +90,9 @@ The reason this package exists is to provide sane defaults when integrating with
 
     # defer sending of Mixpanel messages to a background task queue
     mixpanel.consumer = myapp.mixpanel.QueuedConsumer
+
+    # enable logging with structlog
+    pyramid_heroku.structlog = true
     ```
 
 For view code dealing with requests, a pre-configured `request.mixpanel`
