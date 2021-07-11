@@ -119,6 +119,7 @@ In order to have nice and consistent event and property names, the authors of th
 * Use [Title Case](https://en.wikipedia.org/wiki/Letter_case#Title_Case).
 * Frontend only sends two Mixpanel events: `Button/Link Clicked` and `Page Viewed`. We then construct custom events such as `Password Reset Button Clicked` or `Pricing Page Viewed` inside Mixpanel dashboard based on button name, URL, etc. Custom events can be modified retroactively, regular events cannot.
 * Backend sends "action" events, when those actions finish successfully, such as `Site Deployed`, `PDF generated`, `Backup Completed`.
+* More on https://segment.com/academy/collecting-data/naming-conventions-for-clean-data/.
 
 
 ## Running tests
