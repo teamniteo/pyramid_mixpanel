@@ -158,10 +158,10 @@ class ProfileMetaProperties:
 
 def includeme(config: Configurator) -> None:
     """Pyramid knob."""
-    from pyramid_mixpanel.track import mixpanel_init
-    from pyramid_mixpanel.track import mixpanel_flush
-    from pyramid_mixpanel.track import MixpanelTrack
     from pyramid_mixpanel.consumer import MockedConsumer
+    from pyramid_mixpanel.track import mixpanel_flush
+    from pyramid_mixpanel.track import mixpanel_init
+    from pyramid_mixpanel.track import MixpanelTrack
 
     mixpanel = MixpanelTrack(settings=config.registry.settings)
     if config.registry.settings.get("pyramid_heroku.structlog"):

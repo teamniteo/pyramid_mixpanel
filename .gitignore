@@ -113,3 +113,6 @@ typecov/
 
 # `make install` flag
 .installed
+
+# temporary files made by direnv.net
+.direnv/

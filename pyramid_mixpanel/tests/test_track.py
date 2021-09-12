@@ -287,6 +287,7 @@ def test_init_profile_meta_properties() -> None:
 def test_track() -> None:
     """Test the track method."""
     m = MixpanelTrack(settings={}, distinct_id="foo")
+    m.api._make_insert_id = lambda: "123e4567"  # noqa: SF01
 
     # default event
     m.track(Events.user_logged_in)
@@ -299,7 +300,8 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,  # 2018-01-01
             "mp_lib": "python",
-            "$lib_version": "4.5.0",
+            "$lib_version": "4.9.0",
+            "$insert_id": "123e4567",
         },
     }
     m.api._consumer.mocked_messages.clear()
@@ -322,7 +324,8 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,  # 2018-01-01
             "mp_lib": "python",
-            "$lib_version": "4.5.0",
+            "$lib_version": "4.9.0",
+            "$insert_id": "123e4567",
             "$referrer": "https://niteo.co",
             "Path": "/about",
             "Title": "About Us",
@@ -338,6 +341,7 @@ def test_track() -> None:
         },
         distinct_id="foo",
     )
+    m.api._make_insert_id = lambda: "123e4567"  # noqa: SF01
     m.track(FooEvents.foo, {FooEventProperties.foo: "bar"})
     assert len(m.api._consumer.mocked_messages) == 1
     assert m.api._consumer.mocked_messages[0].endpoint == "events"
@@ -348,7 +352,8 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,
             "mp_lib": "python",
-            "$lib_version": "4.5.0",
+            "$lib_version": "4.9.0",
+            "$insert_id": "123e4567",
             "Foo": "bar",
         },
     }
@@ -364,6 +369,7 @@ def test_track() -> None:
         distinct_id="foo",
         global_event_props={FooEventProperties.foo: "bar"},
     )
+    m.api._make_insert_id = lambda: "123e4567"  # noqa: SF01
     m.track(FooEvents.foo, {})
     m.track(FooEvents.foo, {})
     # override global event property
@@ -377,7 +383,8 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,
             "mp_lib": "python",
-            "$lib_version": "4.5.0",
+            "$lib_version": "4.9.0",
+            "$insert_id": "123e4567",
             "Foo": "bar",
         },
     }
@@ -389,7 +396,8 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,
             "mp_lib": "python",
-            "$lib_version": "4.5.0",
+            "$lib_version": "4.9.0",
+            "$insert_id": "123e4567",
             "Foo": "bar",
         },
     }
@@ -401,7 +409,8 @@ def test_track() -> None:
             "distinct_id": "foo",
             "time": 1514764800,
             "mp_lib": "python",
-            "$lib_version": "4.5.0",
+            "$lib_version": "4.9.0",
+            "$insert_id": "123e4567",
             "Foo": "baz",
         },
     }
@@ -423,13 +432,13 @@ def test_track_guards() -> None:
 
     # fail if event is not a member of mixpanel.events
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.track(FooEvents.foo)
     assert str(exc.value) == "Event 'Event(name='Foo')' is not a member of self.events"
 
     # fail if event property is not a member of mixpanel.event_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.track(Events.user_logged_in, {FooEventProperties.foo: "foo"})
     assert (
         str(exc.value)
@@ -447,7 +456,7 @@ def test_profile_set() -> None:
     assert m.api._consumer.mocked_messages[0].endpoint == "people"
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$set": {"$name": "FooBar"},
     }
@@ -461,7 +470,7 @@ def test_profile_set() -> None:
     assert m.api._consumer.mocked_messages[1].endpoint == "people"
     assert m.api._consumer.mocked_messages[1].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$set": {"$name": "FooBar2"},
         "$ip": "1.1.1.1",
@@ -482,7 +491,7 @@ def test_profile_set_guards() -> None:
 
     # fail if property is not a member of mixpanel.profile_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.profile_set({FooProfileProperties.foo: "bar"})
     assert (
         str(exc.value)
@@ -491,7 +500,7 @@ def test_profile_set_guards() -> None:
 
     # fail if meta property is not a member of mixpanel.profile_meta_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.profile_set(
             {ProfileProperties.dollar_name: "foo"},
             meta={FooProfileMetaProperties.foo: "bar"},
@@ -512,7 +521,7 @@ def test_people_append() -> None:
     assert m.api._consumer.mocked_messages[0].endpoint == "people"
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$append": {"$name": "FooBar"},
     }
@@ -526,7 +535,7 @@ def test_people_append() -> None:
     assert m.api._consumer.mocked_messages[1].endpoint == "people"
     assert m.api._consumer.mocked_messages[1].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$append": {"$name": "FooBar2"},
         "$ip": "1.1.1.1",
@@ -547,7 +556,7 @@ def test_people_append_guards() -> None:
 
     # fail if property is not a member of mixpanel.profile_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.people_append({FooProfileProperties.foo: "FooBar"})
     assert (
         str(exc.value)
@@ -556,7 +565,7 @@ def test_people_append_guards() -> None:
 
     # fail if meta property is not a member of mixpanel.profile_meta_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.people_append(
             {ProfileProperties.dollar_name: "foo"},
             meta={FooProfileMetaProperties.foo: "bar"},
@@ -577,7 +586,7 @@ def test_people_union() -> None:
     assert m.api._consumer.mocked_messages[0].endpoint == "people"
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$union": {"$name": ["FooBar"]},
     }
@@ -591,7 +600,7 @@ def test_people_union() -> None:
     assert m.api._consumer.mocked_messages[1].endpoint == "people"
     assert m.api._consumer.mocked_messages[1].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$union": {"$name": ["FooBar2"]},
         "$ip": ["1.1.1.1"],
@@ -612,7 +621,7 @@ def test_people_union_guards() -> None:
 
     # fail if property is not a member of mixpanel.profile_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.people_union({FooProfileProperties.foo: ["FooBar"]})
     assert (
         str(exc.value)
@@ -621,13 +630,13 @@ def test_people_union_guards() -> None:
 
     # fail if property's value is not a list
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(TypeError) as exc:
+    with pytest.raises(TypeError) as exc:  # type: ignore
         m.people_union({ProfileProperties.dollar_name: "FooBar"})
     assert str(exc.value) == "Property 'Property(name='$name')' value is not a list"
 
     # fail if meta property is not a member of mixpanel.profile_meta_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.people_union(
             {ProfileProperties.dollar_name: ["foo"]},
             meta={FooProfileMetaProperties.foo: ["bar"]},
@@ -639,7 +648,7 @@ def test_people_union_guards() -> None:
 
     # fail if meta property's value is not a list
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(TypeError) as exc:
+    with pytest.raises(TypeError) as exc:  # type: ignore
         m.people_union(
             {ProfileProperties.dollar_name: ["foo"]},
             meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
@@ -662,7 +671,7 @@ def test_profile_increment() -> None:
     assert m.api._consumer.mocked_messages[0].endpoint == "people"
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$add": {"Foo": 1},
     }
@@ -682,7 +691,7 @@ def test_profile_increment_guards() -> None:
 
     # fail if property is not a member of mixpanel.profile_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.profile_increment({FooProfileProperties.foo: "FooBar"})
     assert (
         str(exc.value)
@@ -705,7 +714,7 @@ def test_profile_track_charge() -> None:
     assert m.api._consumer.mocked_messages[0].endpoint == "people"
     assert m.api._consumer.mocked_messages[0].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$append": {"$transactions": {"$amount": 100}},
     }
@@ -715,7 +724,7 @@ def test_profile_track_charge() -> None:
     assert m.api._consumer.mocked_messages[1].endpoint == "people"
     assert m.api._consumer.mocked_messages[1].msg == {
         "$token": "testing",
-        "$time": 1514764800000,
+        "$time": 1514764800,
         "$distinct_id": "foo",
         "$append": {"$transactions": {"Foo": "Bar", "$amount": 222}},
     }
@@ -735,7 +744,7 @@ def test_profile_track_charge_guards() -> None:
 
     # fail if property is not a member of mixpanel.profile_properties
     m = MixpanelTrack(settings={}, distinct_id="foo")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # type: ignore
         m.profile_track_charge(100, {FooProfileProperties.foo: "FooBar"})
     assert (
         str(exc.value)
