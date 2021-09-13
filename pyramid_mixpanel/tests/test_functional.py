@@ -13,7 +13,7 @@ from testfixtures import LogCapture
 from unittest import mock
 from webtest import TestApp
 
-import base64
+import responses
 import structlog
 import typing as t
 import urllib
@@ -58,8 +58,11 @@ def app(settings) -> Router:
 
 
 @freeze_time("2019-01-01")
-def test_MockedConsumer() -> None:
+@mock.patch("mixpanel.Mixpanel._make_insert_id")
+def test_MockedConsumer(_make_insert_id) -> None:
     """Test that request.mixpanel works as expected with MockedConsumer."""
+    _make_insert_id.return_value = "123e4567"
+
     with LogCapture() as logs:
         testapp = TestApp(app({"pyramid_heroku.structlog": True}))
 
@@ -95,8 +98,9 @@ def test_MockedConsumer() -> None:
                     "token": "testing",
                     "distinct_id": "foo-123",
                     "time": 1546300800,
+                    "$insert_id": "123e4567",
                     "mp_lib": "python",
-                    "$lib_version": "4.5.0",
+                    "$lib_version": "4.9.0",
                     "Path": "/hello",
                 },
             },
@@ -105,13 +109,18 @@ def test_MockedConsumer() -> None:
 
 
 @freeze_time("2019-01-01")
-@mock.patch("mixpanel.urllib.request.urlopen")
-@mock.patch("mixpanel.urllib.request.Request")
-def test_PoliteBufferedConsumer(
-    request: mock.MagicMock, urlopen: mock.MagicMock
-) -> None:
+@responses.activate
+@mock.patch("mixpanel.Mixpanel._make_insert_id")
+def test_PoliteBufferedConsumer(_make_insert_id) -> None:
     """Test that request.mixpanel works as expected with PoliteBufferedConsumer."""
-    urlopen().read.return_value = b'{"error":null,"status":1}'
+    _make_insert_id.return_value = "123e4567"
+
+    responses.add(
+        responses.POST,
+        "https://api.mixpanel.com/track",
+        json={"error": None, "status": 1},
+        status=200,
+    )
 
     with LogCapture() as logs:
         settings = {"mixpanel.token": "SECRET", "pyramid_heroku.structlog": True}
@@ -131,27 +140,25 @@ def test_PoliteBufferedConsumer(
         )
     )
 
-    message = json_dumps(
-        [
-            {
-                "event": "Page Viewed",
-                "properties": {
-                    "token": "SECRET",
-                    "distinct_id": "foo-123",
-                    "time": 1546300800,
-                    "mp_lib": "python",
-                    "$lib_version": "4.5.0",
-                    "Path": "/hello",
-                },
-            }
-        ]
-    )
-    data = {"data": base64.b64encode(message.encode("utf8")), "verbose": 1, "ip": 0}
-    request.assert_called_with(
-        "https://api.mixpanel.com/track",
-        urllib.parse.urlencode(data).encode("utf8"),  # type:ignore
-    )
+    assert len(responses.calls) == 1
+    event = {
+        "event": "Page Viewed",
+        "properties": {
+            "token": "SECRET",
+            "distinct_id": "foo-123",
+            "time": 1546300800,
+            "$insert_id": "123e4567",
+            "mp_lib": "python",
+            "$lib_version": "4.9.0",
+            "Path": "/hello",
+        },
+    }
 
+    json_message = json_dumps([event])
+    params = {"data": json_message, "verbose": 1, "ip": 0}
+    assert responses.calls[0].request.body == urllib.parse.urlencode(params)
+
+    # regular logging if structlog is not enabled
     with LogCapture() as logs:
         settings = {"mixpanel.token": "SECRET", "pyramid_heroku.structlog": False}
         testapp = TestApp(app(settings))
@@ -169,31 +176,13 @@ def test_PoliteBufferedConsumer(
         )
     )
 
-    message = json_dumps(
-        [
-            {
-                "event": "Page Viewed",
-                "properties": {
-                    "token": "SECRET",
-                    "distinct_id": "foo-123",
-                    "time": 1546300800,
-                    "mp_lib": "python",
-                    "$lib_version": "4.5.0",
-                    "Path": "/hello",
-                },
-            }
-        ]
-    )
-    data = {"data": base64.b64encode(message.encode("utf8")), "verbose": 1, "ip": 0}
-    request.assert_called_with(
-        "https://api.mixpanel.com/track",
-        urllib.parse.urlencode(data).encode("utf8"),  # type:ignore
-    )
-
 
 @freeze_time("2019-01-01")
-def test_header_event_props() -> None:
+@mock.patch("mixpanel.Mixpanel._make_insert_id")
+def test_header_event_props(_make_insert_id) -> None:
     """Test that event properties from header are added to the event."""
+    _make_insert_id.return_value = "123e4567"
+
     with LogCapture() as logs:
         testapp = TestApp(app({"pyramid_heroku.structlog": True}))
 
@@ -236,8 +225,9 @@ def test_header_event_props() -> None:
                     "token": "testing",
                     "distinct_id": "foo-123",
                     "time": 1546300800,
+                    "$insert_id": "123e4567",
                     "mp_lib": "python",
-                    "$lib_version": "4.5.0",
+                    "$lib_version": "4.9.0",
                     "Path": "/hello",
                     "Title": "hello",
                 },
@@ -285,8 +275,9 @@ def test_header_event_props() -> None:
                     "token": "testing",
                     "distinct_id": "foo-123",
                     "time": 1546300800,
+                    "$insert_id": "123e4567",
                     "mp_lib": "python",
-                    "$lib_version": "4.5.0",
+                    "$lib_version": "4.9.0",
                     "Path": "/hello",
                     "Title": "hello",
                 },

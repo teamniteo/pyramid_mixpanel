@@ -3,11 +3,14 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[requires]
+python_version = "3.8"
+
 [packages]
 pyramid-mixpanel = {editable = true,path = "."}
 
 [dev-packages]
-black = "==19.3b0"
+black = "==21.8b0"
 codespell = "*"
 flake8 = "*"
 flake8-assertive = "*"
@@ -21,7 +24,6 @@ flake8-docstrings = "*"
 flake8-isort = "*"
 flake8-mock = "*"
 flake8-mutable = "*"
-flake8-per-file-ignores = "*"
 flake8-plone-hasattr = "*"
 flake8-print = "*"
 flake8-self = "*"
@@ -37,7 +39,8 @@ pytest-cov = "*"
 pytest-randomly = "*"
 pytest-socket = "*"
 responses = "*"
-twine = "*"
-webtest = "*"
-typecov = "*"
 structlog = "*"
+twine = "*"
+typecov = "*"
+types-requests = ""
+webtest = "*"

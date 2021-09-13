@@ -64,7 +64,7 @@ class MixpanelTrack:
             resolved = DottedNameResolver().resolve(dotted_name)
             if not issubclass(resolved, Events):
                 raise ValueError(
-                    f"class in dotted_name needs to be based on pyramid_mixpanel.Events"
+                    "class in dotted_name needs to be based on pyramid_mixpanel.Events"
                 )
             return resolved()
 
@@ -83,7 +83,7 @@ class MixpanelTrack:
             resolved = DottedNameResolver().resolve(dotted_name)
             if not issubclass(resolved, EventProperties):
                 raise ValueError(
-                    f"class in dotted_name needs to be based on pyramid_mixpanel.EventProperties"
+                    "class in dotted_name needs to be based on pyramid_mixpanel.EventProperties"
                 )
             return resolved()
 
@@ -102,7 +102,7 @@ class MixpanelTrack:
             resolved = DottedNameResolver().resolve(dotted_name)
             if not issubclass(resolved, ProfileProperties):
                 raise ValueError(
-                    f"class in dotted_name needs to be based on pyramid_mixpanel.ProfileProperties"
+                    "class in dotted_name needs to be based on pyramid_mixpanel.ProfileProperties"
                 )
             return resolved()
 
@@ -121,7 +121,7 @@ class MixpanelTrack:
             resolved = DottedNameResolver().resolve(dotted_name)
             if not issubclass(resolved, ProfileMetaProperties):
                 raise ValueError(
-                    f"class in dotted_name needs to be based on pyramid_mixpanel.ProfileMetaProperties"
+                    "class in dotted_name needs to be based on pyramid_mixpanel.ProfileMetaProperties"
                 )
             return resolved()
 
@@ -142,7 +142,7 @@ class MixpanelTrack:
                 issubclass(resolved, Consumer) or issubclass(resolved, BufferedConsumer)
             ):
                 raise ValueError(
-                    f"class in dotted_name needs to be based on mixpanel.(Buffered)Consumer"
+                    "class in dotted_name needs to be based on mixpanel.(Buffered)Consumer"
                 )
             return resolved()
 
