@@ -1,5 +1,7 @@
 """Tracking user events and profiles."""
 
+from customerio import CustomerIO
+from customerio import Regions
 from mixpanel import BufferedConsumer
 from mixpanel import Consumer
 from mixpanel import Mixpanel
@@ -14,6 +16,7 @@ from pyramid_mixpanel import ProfileMetaProperties
 from pyramid_mixpanel import ProfileProperties
 from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
+from pyramid_mixpanel.consumer import MockedMessage
 from pyramid_mixpanel.consumer import PoliteBufferedConsumer
 
 import typing as t
@@ -177,6 +180,26 @@ class MixpanelTrack:
         else:
             self.global_event_props = {}
 
+        if (
+            settings.get("customerio.site_id")
+            and settings.get("customerio.api_key")
+            and settings.get("customerio.region")
+        ):
+            if settings["customerio.region"] == "eu":
+                region = Regions.EU
+            elif settings["customerio.region"] == "us":
+                region = Regions.US
+            else:
+                raise ValueError("Unknown customer.io region")
+
+            self.cio = CustomerIO(
+                settings["customerio.site_id"],
+                settings["customerio.api_key"],
+                region=region,
+            )
+        else:
+            self.cio = None
+
     @distinct_id_is_required
     def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
         """Track a Mixpanel event."""
@@ -198,6 +221,21 @@ class MixpanelTrack:
             event.name,
             {prop.name: value for (prop, value) in props.items()},
         )
+        if self.cio:
+            msg = {
+                "customer_id": self.distinct_id,
+                "name": event.name,
+                **{
+                    prop.name.replace("$", ""): value for (prop, value) in props.items()
+                },
+            }
+
+            if self.api._consumer.__class__ == MockedConsumer:
+                self.api._consumer.mocked_messages.append(
+                    MockedMessage(endpoint="customer.io", msg=msg)
+                )
+            else:
+                self.cio.track(**msg)
 
     @distinct_id_is_required
     def profile_set(
@@ -229,6 +267,21 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in props.items()},
             {prop.name: value for (prop, value) in meta.items()},
         )
+        if self.cio:
+            msg = {
+                "id": self.distinct_id,
+                **{
+                    prop.name.replace("$", ""): value for (prop, value) in props.items()
+                },
+                **{prop.name.replace("$", ""): value for (prop, value) in meta.items()},
+            }
+
+            if self.api._consumer.__class__ == MockedConsumer:
+                self.api._consumer.mocked_messages.append(
+                    MockedMessage(endpoint="customer.io", msg=msg)
+                )
+            else:
+                self.cio.identify(**msg)
 
     @distinct_id_is_required
     def people_append(

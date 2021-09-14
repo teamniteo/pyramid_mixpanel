@@ -36,8 +36,8 @@ types: .installed
 
 .PHONY: sort
 sort: .installed
-	@pipenv run isort -rc --atomic pyramid_mixpanel
-	@pipenv run isort -rc --atomic setup.py
+	@pipenv run isort --atomic pyramid_mixpanel
+	@pipenv run isort --atomic setup.py
 
 .PHONY: fmt
 fmt: format

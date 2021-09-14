@@ -1,5 +1,6 @@
 """Tests for Mixpanel tracking."""
 
+from customerio.track import CustomerIO
 from dataclasses import dataclass
 from freezegun import freeze_time
 from mixpanel import Consumer
@@ -179,6 +180,46 @@ def test_init_event_properties() -> None:
     assert (
         str(exc.value) == "dotted_name must be a string, but it is: FooEventProperties"
     )
+
+
+def test_mixpanel_init_customerio() -> None:
+    """Test customerio api object is created."""
+    from pyramid_mixpanel.track import mixpanel_init
+
+    # By default, Customer.io is not configured
+    request = mock.Mock(spec="registry headers".split())
+    request.registry.settings = {}
+    request.headers = {}
+
+    result = mixpanel_init(request)
+
+    assert result.__class__ == MixpanelTrack
+    assert result.cio is None
+
+    # However if correct settings are provided, Customer.io API object is created
+    request.registry.settings = {
+        "customerio.site_id": "secret",
+        "customerio.api_key": "secret",
+        "customerio.region": "eu",
+    }
+
+    result = mixpanel_init(request)
+    assert result.__class__ == MixpanelTrack
+    assert result.cio.__class__ == CustomerIO
+    assert "eu" in result.cio.base_url
+
+    # US region is also possible
+    request.registry.settings["customerio.region"] = "us"
+
+    result = mixpanel_init(request)
+    assert "us" in result.cio.base_url
+
+    # fail on bad region
+    request.registry.settings["customerio.region"] = "foo"
+
+    with pytest.raises(ValueError) as cm:
+        result = mixpanel_init(request)
+    assert str(cm.value) == "Unknown customer.io region"
 
 
 @dataclass(frozen=True)
@@ -418,6 +459,56 @@ def test_track() -> None:
     m.api._consumer.mocked_messages.clear()
 
 
+@freeze_time("2018-01-01")
+def test_track_customerio() -> None:
+    """Test tracking an event at Customer.io."""
+
+    m = MixpanelTrack(
+        settings={
+            "customerio.site_id": "foo",
+            "customerio.api_key": "secret",
+            "customerio.region": "eu",
+        },
+        distinct_id="foo",
+    )
+    m.api._make_insert_id = lambda: "123e4567"  # noqa: SF01
+
+    m.track(
+        Events.page_viewed,
+        {
+            EventProperties.path: "/about",
+            EventProperties.title: "About Us",
+            EventProperties.dollar_referrer: "https://niteo.co",
+        },
+    )
+    assert len(m.api._consumer.mocked_messages) == 2
+    assert m.api._consumer.mocked_messages[0].endpoint == "events"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "event": "Page Viewed",
+        "properties": {
+            "token": "testing",
+            "distinct_id": "foo",
+            "time": 1514764800,  # 2018-01-01
+            "mp_lib": "python",
+            "$lib_version": "4.9.0",
+            "$insert_id": "123e4567",
+            "$referrer": "https://niteo.co",
+            "Path": "/about",
+            "Title": "About Us",
+        },
+    }
+
+    assert m.api._consumer.mocked_messages[1].endpoint == "customer.io"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "Path": "/about",
+        "Title": "About Us",
+        "customer_id": "foo",  # this is distinct_id
+        "name": "Page Viewed",
+        "referrer": "https://niteo.co",  # dollar sign was removed
+    }
+    m.api._consumer.mocked_messages.clear()
+
+
 def test_track_guards() -> None:
     """Test guards that make sure parameters sent to .track() are good."""
 
@@ -474,6 +565,40 @@ def test_profile_set() -> None:
         "$distinct_id": "foo",
         "$set": {"$name": "FooBar2"},
         "$ip": "1.1.1.1",
+    }
+
+
+@freeze_time("2018-01-01")
+def test_profile_set_customerio() -> None:
+    """Test setting a profile property on Customer.io."""
+    m = MixpanelTrack(
+        settings={
+            "customerio.site_id": "foo",
+            "customerio.api_key": "secret",
+            "customerio.region": "eu",
+        },
+        distinct_id="foo",
+    )
+    m.profile_set(
+        {ProfileProperties.dollar_name: "FooBar"},
+        meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
+    )
+
+    assert len(m.api._consumer.mocked_messages) == 2
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800,
+        "$distinct_id": "foo",
+        "$set": {"$name": "FooBar"},
+        "$ip": "1.1.1.1",
+    }
+
+    assert m.api._consumer.mocked_messages[1].endpoint == "customer.io"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "id": "foo",  # this is distinct_id
+        "name": "FooBar",
+        "ip": "1.1.1.1",  # dollar sign was removed
     }
 
 
