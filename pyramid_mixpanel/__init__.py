@@ -175,6 +175,7 @@ def includeme(config: Configurator) -> None:
             event_properties=mixpanel.event_properties.__class__.__name__,
             profile_properties=mixpanel.profile_properties.__class__.__name__,
             profile_meta_properties=mixpanel.profile_meta_properties.__class__.__name__,
+            customerio=True if mixpanel.cio else False,
         )
         if mixpanel.api._consumer.__class__ == MockedConsumer:
             logger.warning("Mixpanel is in testing mode, no message will be sent!")
@@ -190,7 +191,8 @@ def includeme(config: Configurator) -> None:
             f"events={mixpanel.events.__class__.__name__}, "
             f"event_properties={mixpanel.event_properties.__class__.__name__}, "
             f"profile_properties={mixpanel.profile_properties.__class__.__name__}, "
-            f"profile_meta_properties={mixpanel.profile_meta_properties.__class__.__name__}"
+            f"profile_meta_properties={mixpanel.profile_meta_properties.__class__.__name__}, "
+            f"customerio={True if mixpanel.cio else False}"
         )
         if mixpanel.api._consumer.__class__ == MockedConsumer:
             logger.warning("Mixpanel is in testing mode, no message will be sent!")

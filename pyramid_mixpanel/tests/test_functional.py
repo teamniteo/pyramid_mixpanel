@@ -8,6 +8,7 @@ from pyramid.router import Router
 from pyramid.view import view_config
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
+from pyramid_mixpanel import ProfileProperties
 from pyramid_mixpanel.consumer import MockedMessage
 from testfixtures import LogCapture
 from unittest import mock
@@ -29,6 +30,7 @@ def hello(request: Request) -> t.Dict[str, str]:
     # provide access to Pyramid request in WebTest response
     request.environ["paste.testing_variables"]["app_request"] = request
 
+    request.mixpanel.profile_set({ProfileProperties.dollar_name: "Bob"})
     request.mixpanel.track(Events.page_viewed, {EventProperties.path: "/hello"})
     return {"hello": "world"}
 
@@ -76,7 +78,7 @@ def test_MockedConsumer(_make_insert_id) -> None:
         (
             "pyramid_mixpanel",
             "INFO",
-            "consumer='MockedConsumer' event='Mixpanel configured' "
+            "consumer='MockedConsumer' customerio=False event='Mixpanel configured' "
             "event_properties='EventProperties' events='Events' "
             "profile_meta_properties='ProfileMetaProperties' "
             "profile_properties='ProfileProperties'",
@@ -91,6 +93,15 @@ def test_MockedConsumer(_make_insert_id) -> None:
     assert res.app_request.mixpanel.api._consumer.flushed is True
     assert res.app_request.mixpanel.api._consumer.mocked_messages == [
         MockedMessage(
+            endpoint="people",
+            msg={
+                "$token": "testing",
+                "$time": 1546300800,
+                "$distinct_id": "foo-123",
+                "$set": {"$name": "Bob"},
+            },
+        ),
+        MockedMessage(
             endpoint="events",
             msg={
                 "event": "Page Viewed",
@@ -104,7 +115,7 @@ def test_MockedConsumer(_make_insert_id) -> None:
                     "Path": "/hello",
                 },
             },
-        )
+        ),
     ]
 
 
@@ -112,18 +123,43 @@ def test_MockedConsumer(_make_insert_id) -> None:
 @responses.activate
 @mock.patch("mixpanel.Mixpanel._make_insert_id")
 def test_PoliteBufferedConsumer(_make_insert_id) -> None:
-    """Test that request.mixpanel works as expected with PoliteBufferedConsumer."""
+    """Test that request.mixpanel works as expected with PoliteBufferedConsumer.
+
+    And with Customer.io as well.
+    """
     _make_insert_id.return_value = "123e4567"
 
+    responses.add(
+        responses.POST,
+        "https://api.mixpanel.com/engage",
+        json={"error": None, "status": 1},
+        status=200,
+    )
     responses.add(
         responses.POST,
         "https://api.mixpanel.com/track",
         json={"error": None, "status": 1},
         status=200,
     )
+    responses.add(
+        responses.PUT,
+        "https://track-eu.customer.io/api/v1/customers/foo-123",
+        status=200,
+    )
+    responses.add(
+        responses.POST,
+        "https://track-eu.customer.io/api/v1/customers/foo-123/events",
+        status=200,
+    )
 
     with LogCapture() as logs:
-        settings = {"mixpanel.token": "SECRET", "pyramid_heroku.structlog": True}
+        settings = {
+            "mixpanel.token": "SECRET",
+            "pyramid_heroku.structlog": True,
+            "customerio.site_id": "secret",
+            "customerio.api_key": "secret",
+            "customerio.region": "eu",
+        }
         testapp = TestApp(app(settings))
 
         res = testapp.get("/hello", status=200)
@@ -133,14 +169,32 @@ def test_PoliteBufferedConsumer(_make_insert_id) -> None:
         (
             "pyramid_mixpanel",
             "INFO",
-            "consumer='PoliteBufferedConsumer' event='Mixpanel configured' "
-            "event_properties='EventProperties' events='Events' "
+            "consumer='PoliteBufferedConsumer' customerio=True event='Mixpanel "
+            "configured' event_properties='EventProperties' events='Events' "
             "profile_meta_properties='ProfileMetaProperties' "
             "profile_properties='ProfileProperties'",
-        )
+        ),
     )
 
-    assert len(responses.calls) == 1
+    assert len(responses.calls) == 4
+
+    # Customer.io requests are first because they are not buffered
+    assert (
+        responses.calls[0].request.url
+        == "https://track-eu.customer.io/api/v1/customers/foo-123"
+    )
+    assert responses.calls[0].request.body == b'{"name": "Bob"}'
+    assert (
+        responses.calls[1].request.url
+        == "https://track-eu.customer.io/api/v1/customers/foo-123/events"
+    )
+    assert (
+        responses.calls[1].request.body
+        == b'{"name": "Page Viewed", "data": {"Path": "/hello"}}'
+    )
+
+    # Then comes Mixpanel request
+    assert responses.calls[2].request.url == "https://api.mixpanel.com/track"
     event = {
         "event": "Page Viewed",
         "properties": {
@@ -153,10 +207,20 @@ def test_PoliteBufferedConsumer(_make_insert_id) -> None:
             "Path": "/hello",
         },
     }
-
     json_message = json_dumps([event])
     params = {"data": json_message, "verbose": 1, "ip": 0}
-    assert responses.calls[0].request.body == urllib.parse.urlencode(params)
+    assert responses.calls[2].request.body == urllib.parse.urlencode(params)
+
+    assert responses.calls[3].request.url == "https://api.mixpanel.com/engage"
+    event = {
+        "$token": "SECRET",
+        "$time": 1546300800,  # type: ignore
+        "$distinct_id": "foo-123",
+        "$set": {"$name": "Bob"},
+    }
+    json_message = json_dumps([event])
+    params = {"data": json_message, "verbose": 1, "ip": 0}
+    assert responses.calls[3].request.body == urllib.parse.urlencode(params)
 
     # regular logging if structlog is not enabled
     with LogCapture() as logs:
@@ -172,8 +236,8 @@ def test_PoliteBufferedConsumer(_make_insert_id) -> None:
             "INFO",
             "Mixpanel configured consumer=PoliteBufferedConsumer, events=Events, "
             "event_properties=EventProperties, profile_properties=ProfileProperties, "
-            "profile_meta_properties=ProfileMetaProperties",
-        )
+            "profile_meta_properties=ProfileMetaProperties, customerio=False",
+        ),
     )
 
 
@@ -197,7 +261,7 @@ def test_header_event_props(_make_insert_id) -> None:
         (
             "pyramid_mixpanel",
             "INFO",
-            "consumer='MockedConsumer' event='Mixpanel configured' "
+            "consumer='MockedConsumer' customerio=False event='Mixpanel configured' "
             "event_properties='EventProperties' events='Events' "
             "profile_meta_properties='ProfileMetaProperties' "
             "profile_properties='ProfileProperties'",
@@ -216,7 +280,17 @@ def test_header_event_props(_make_insert_id) -> None:
     )
 
     assert res.app_request.mixpanel.api._consumer.flushed is True
+
     assert res.app_request.mixpanel.api._consumer.mocked_messages == [
+        MockedMessage(
+            endpoint="people",
+            msg={
+                "$token": "testing",
+                "$time": 1546300800,
+                "$distinct_id": "foo-123",
+                "$set": {"$name": "Bob"},
+            },
+        ),
         MockedMessage(
             endpoint="events",
             msg={
@@ -228,11 +302,11 @@ def test_header_event_props(_make_insert_id) -> None:
                     "$insert_id": "123e4567",
                     "mp_lib": "python",
                     "$lib_version": "4.9.0",
-                    "Path": "/hello",
                     "Title": "hello",
+                    "Path": "/hello",
                 },
             },
-        )
+        ),
     ]
 
     with LogCapture() as logs:
@@ -251,7 +325,7 @@ def test_header_event_props(_make_insert_id) -> None:
             "INFO",
             "Mixpanel configured consumer=MockedConsumer, events=Events, "
             "event_properties=EventProperties, profile_properties=ProfileProperties, "
-            "profile_meta_properties=ProfileMetaProperties",
+            "profile_meta_properties=ProfileMetaProperties, customerio=False",
         ),
         (
             "pyramid_mixpanel",
@@ -268,6 +342,15 @@ def test_header_event_props(_make_insert_id) -> None:
     assert res.app_request.mixpanel.api._consumer.flushed is True
     assert res.app_request.mixpanel.api._consumer.mocked_messages == [
         MockedMessage(
+            endpoint="people",
+            msg={
+                "$token": "testing",
+                "$time": 1546300800,
+                "$distinct_id": "foo-123",
+                "$set": {"$name": "Bob"},
+            },
+        ),
+        MockedMessage(
             endpoint="events",
             msg={
                 "event": "Page Viewed",
@@ -278,11 +361,11 @@ def test_header_event_props(_make_insert_id) -> None:
                     "$insert_id": "123e4567",
                     "mp_lib": "python",
                     "$lib_version": "4.9.0",
-                    "Path": "/hello",
                     "Title": "hello",
+                    "Path": "/hello",
                 },
             },
-        )
+        ),
     ]
 
 
@@ -301,10 +384,10 @@ def test_request_mixpanel_not_used(flush: mock.MagicMock) -> None:
         (
             "pyramid_mixpanel",
             "INFO",
-            "consumer='PoliteBufferedConsumer' event='Mixpanel configured' "
-            "event_properties='EventProperties' events='Events' "
+            "consumer='PoliteBufferedConsumer' customerio=False event='Mixpanel "
+            "configured' event_properties='EventProperties' events='Events' "
             "profile_meta_properties='ProfileMetaProperties' "
             "profile_properties='ProfileProperties'",
-        )
+        ),
     )
     flush.assert_not_called()
