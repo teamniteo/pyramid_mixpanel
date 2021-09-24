@@ -68,7 +68,7 @@ setup(
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
     install_requires=["pyramid", "requests", "mixpanel", "customerio"],
-    extra_requires={
+    extras_require={
         "customerio": ["customerio"],
     },
     cmdclass={"verify": VerifyVersionCommand},
