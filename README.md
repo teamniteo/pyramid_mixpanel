@@ -35,7 +35,7 @@
   </a>
 </p>
 
-## Opinionated Mixpanel integration
+## Opinionated Mixpanel (and Customer.io) integration
 
 The reason this package exists is to provide sane defaults when integrating with Mixpanel. Instead of chasing down event name typos and debugging why tracking does not work, you can focus on learning what is important to your users.
 
@@ -45,6 +45,16 @@ The reason this package exists is to provide sane defaults when integrating with
 - Your **app never stops working if Mixpanel is down**, but you still get errors in your logs so you know what is going on.
 - You **never forget to call `flush()`** on the events buffer, since `pyramid_mixpanel` hooks into the request life-cycle and calls `flush()` at the end of the request processing.
 - You **defer sending events until the entire request is processed successfully**, i.e. never send events like "User added a thing" if adding the thing to DB failed at a later stage in the request life-cycle.
+
+NOTE: At the end of 2021, Mixpanel is [sunsetting their Email Messages](https://mixpanel.com/blog/why-were-sunsetting-messaging-and-experiments/) feature. Since we rely heavily on those at
+[Niteo](https://niteo.co), we are adding [Customer.io integration]() into this library, to replace Mixpanel's Email Messages. If you don't want to use Customer.io, nothing changes for you, just keep using `pyramid_mixpanel` as always. If you do want to use Customer.io, then
+add the following registry settings, and all `profile_set` and `track` calls will get automatically replicated to Customer.io. Other calls such as `profile_append` will only send to Mixpanel.
+
+```ini
+customerio.tracking.site_id: <secret>
+customerio.tracking.api_key: <secret>
+customerio.tracking.region: <eu OR us>
+```
 
 
 ## Features
