@@ -1,5 +1,12 @@
 ## Changelog
 
+0.9.0 (2021-09-24)
+------------------
+
+* Add optional support for Customer.io.
+  [zupo]
+
+
 0.8.0 (2020-05-11)
 ------------------
 
