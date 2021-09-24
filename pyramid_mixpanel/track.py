@@ -181,20 +181,20 @@ class MixpanelTrack:
             self.global_event_props = {}
 
         if (
-            settings.get("customerio.site_id")
-            and settings.get("customerio.api_key")
-            and settings.get("customerio.region")
+            settings.get("customerio.tracking.site_id")
+            and settings.get("customerio.tracking.api_key")
+            and settings.get("customerio.tracking.region")
         ):
-            if settings["customerio.region"] == "eu":
+            if settings["customerio.tracking.region"] == "eu":
                 region = Regions.EU
-            elif settings["customerio.region"] == "us":
+            elif settings["customerio.tracking.region"] == "us":
                 region = Regions.US
             else:
                 raise ValueError("Unknown customer.io region")
 
             self.cio = CustomerIO(
-                settings["customerio.site_id"],
-                settings["customerio.api_key"],
+                settings["customerio.tracking.site_id"],
+                settings["customerio.tracking.api_key"],
                 region=region,
             )
         else:

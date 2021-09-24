@@ -198,9 +198,9 @@ def test_mixpanel_init_customerio() -> None:
 
     # However if correct settings are provided, Customer.io API object is created
     request.registry.settings = {
-        "customerio.site_id": "secret",
-        "customerio.api_key": "secret",
-        "customerio.region": "eu",
+        "customerio.tracking.site_id": "secret",
+        "customerio.tracking.api_key": "secret",
+        "customerio.tracking.region": "eu",
     }
 
     result = mixpanel_init(request)
@@ -209,13 +209,13 @@ def test_mixpanel_init_customerio() -> None:
     assert "eu" in result.cio.base_url
 
     # US region is also possible
-    request.registry.settings["customerio.region"] = "us"
+    request.registry.settings["customerio.tracking.region"] = "us"
 
     result = mixpanel_init(request)
     assert "us" in result.cio.base_url
 
     # fail on bad region
-    request.registry.settings["customerio.region"] = "foo"
+    request.registry.settings["customerio.tracking.region"] = "foo"
 
     with pytest.raises(ValueError) as cm:
         result = mixpanel_init(request)
@@ -465,9 +465,9 @@ def test_track_customerio() -> None:
 
     m = MixpanelTrack(
         settings={
-            "customerio.site_id": "foo",
-            "customerio.api_key": "secret",
-            "customerio.region": "eu",
+            "customerio.tracking.site_id": "foo",
+            "customerio.tracking.api_key": "secret",
+            "customerio.tracking.region": "eu",
         },
         distinct_id="foo",
     )
@@ -573,9 +573,9 @@ def test_profile_set_customerio() -> None:
     """Test setting a profile property on Customer.io."""
     m = MixpanelTrack(
         settings={
-            "customerio.site_id": "foo",
-            "customerio.api_key": "secret",
-            "customerio.region": "eu",
+            "customerio.tracking.site_id": "foo",
+            "customerio.tracking.api_key": "secret",
+            "customerio.tracking.region": "eu",
         },
         distinct_id="foo",
     )
