@@ -156,9 +156,9 @@ def test_PoliteBufferedConsumer(_make_insert_id) -> None:
         settings = {
             "mixpanel.token": "SECRET",
             "pyramid_heroku.structlog": True,
-            "customerio.site_id": "secret",
-            "customerio.api_key": "secret",
-            "customerio.region": "eu",
+            "customerio.tracking.site_id": "secret",
+            "customerio.tracking.api_key": "secret",
+            "customerio.tracking.region": "eu",
         }
         testapp = TestApp(app(settings))
 
