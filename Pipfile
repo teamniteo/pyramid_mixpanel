@@ -7,7 +7,7 @@ name = "pypi"
 python_version = "3.8"
 
 [packages]
-pyramid-mixpanel = {editable = true,path = "."}
+pyramid-mixpanel = {editable = true,path = ".",extras = ["customerio"]}
 
 [dev-packages]
 black = "==21.8b0"
