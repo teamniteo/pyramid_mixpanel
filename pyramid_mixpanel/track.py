@@ -1,7 +1,5 @@
 """Tracking user events and profiles."""
 
-from customerio import CustomerIO
-from customerio import Regions
 from mixpanel import BufferedConsumer
 from mixpanel import Consumer
 from mixpanel import Mixpanel
@@ -185,6 +183,11 @@ class MixpanelTrack:
             and settings.get("customerio.tracking.api_key")
             and settings.get("customerio.tracking.region")
         ):
+            # This is here because customerio support is an install extra,
+            # i.e. it is optional
+            from customerio import CustomerIO
+            from customerio import Regions
+
             if settings["customerio.tracking.region"] == "eu":
                 region = Regions.EU
             elif settings["customerio.tracking.region"] == "us":
