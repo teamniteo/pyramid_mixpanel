@@ -1,5 +1,13 @@
 ## Changelog
 
+
+0.9.1 (2021-09-24)
+------------------
+
+* Fix brownbag release by fixing definition of extras.
+  [zupo]
+
+
 0.9.0 (2021-09-24)
 ------------------
 
