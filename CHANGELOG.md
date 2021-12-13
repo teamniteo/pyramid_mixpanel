@@ -1,9 +1,24 @@
 ## Changelog
 
+
+0.10.1 (2021-12-13)
+------------------
+
+* Fix another brownbag release by re-applying fixes from 0.9.1.
+  [zupo]
+
+
 0.10.0 (2021-12-13)
 ------------------
 
 * Support different date formatting between Mixpanel and Customer.io.
+  [zupo]
+
+
+0.9.1 (2021-09-24)
+------------------
+
+* Fix brownbag release by fixing definition of extras.
   [zupo]
 
 
