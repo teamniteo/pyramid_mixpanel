@@ -665,7 +665,7 @@ def test_profile_set_date() -> None:
     assert m.api._consumer.mocked_messages[1].endpoint == "customer.io"
     assert m.api._consumer.mocked_messages[1].msg == {
         "id": "foo",  # this is distinct_id
-        "created": 1580605260,  # Sun Feb 02 2020 01:01:00
+        "created_at": 1580605260,  # Sun Feb 02 2020 01:01:00
     }
 
 

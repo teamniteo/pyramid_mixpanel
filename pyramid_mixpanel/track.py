@@ -283,9 +283,17 @@ class MixpanelTrack:
         )
         if self.cio:
 
-            for (prop, value) in customerio_props.items():
+            # customer.io expects dates in unix/epoch format
+            for prop, value in customerio_props.items():
                 if isinstance(value, datetime):
                     customerio_props[prop] = round(value.timestamp())
+
+            # customer.io expects created timestamp as `created_at`
+            if customerio_props.get(Property("$created")):
+                customerio_props[Property("created_at")] = customerio_props[
+                    Property("$created")
+                ]
+                del customerio_props[Property("$created")]
 
             msg = {
                 "id": self.distinct_id,
