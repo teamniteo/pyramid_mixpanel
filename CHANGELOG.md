@@ -1,5 +1,11 @@
 ## Changelog
 
+0.10.2 (2021-12-13)
+------------------
+
+* Customer.io expects the main "sign up" timestamp to be sent as `created_at`.
+  [zupo]
+
 
 0.10.1 (2021-12-13)
 ------------------
