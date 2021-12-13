@@ -2,6 +2,7 @@
 
 from customerio.track import CustomerIO
 from dataclasses import dataclass
+from datetime import datetime
 from freezegun import freeze_time
 from mixpanel import Consumer
 from pyramid_mixpanel import Event
@@ -634,6 +635,38 @@ def test_profile_set_guards() -> None:
         str(exc.value)
         == "Property 'Property(name='Foo')' is not a member of self.profile_meta_properties"
     )
+
+
+@freeze_time("2018-01-01")
+def test_profile_set_date() -> None:
+    """Test dates are correctly formatted for different tracking backends."""
+
+    m = MixpanelTrack(
+        settings={
+            "customerio.tracking.site_id": "foo",
+            "customerio.tracking.api_key": "secret",
+            "customerio.tracking.region": "eu",
+        },
+        distinct_id="foo",
+    )
+    m.profile_set(
+        {ProfileProperties.dollar_created: datetime(2020, 2, 2, 1, 1)},
+    )
+
+    assert len(m.api._consumer.mocked_messages) == 2
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg == {
+        "$token": "testing",
+        "$time": 1514764800,
+        "$distinct_id": "foo",
+        "$set": {"$created": "2020-02-02T01:01:00"},
+    }
+
+    assert m.api._consumer.mocked_messages[1].endpoint == "customer.io"
+    assert m.api._consumer.mocked_messages[1].msg == {
+        "id": "foo",  # this is distinct_id
+        "created": 1580605260,  # Sun Feb 02 2020 01:01:00
+    }
 
 
 @freeze_time("2018-01-01")

@@ -1,5 +1,7 @@
 """Tracking user events and profiles."""
 
+from copy import deepcopy
+from datetime import datetime
 from mixpanel import BufferedConsumer
 from mixpanel import Consumer
 from mixpanel import Mixpanel
@@ -265,16 +267,31 @@ class MixpanelTrack:
                     f"Property '{prop}' is not a member of self.profile_meta_properties"
                 )
 
+        # mixpanel and customerio expect different date formats
+        # so we have to save the props here so we can format them
+        # differently later on in the `if self.cio:` block
+        customerio_props = deepcopy(props)
+
+        for (prop, value) in props.items():
+            if isinstance(value, datetime):
+                props[prop] = value.isoformat()
+
         self.api.people_set(
             self.distinct_id,
             {prop.name: value for (prop, value) in props.items()},
             {prop.name: value for (prop, value) in meta.items()},
         )
         if self.cio:
+
+            for (prop, value) in customerio_props.items():
+                if isinstance(value, datetime):
+                    customerio_props[prop] = round(value.timestamp())
+
             msg = {
                 "id": self.distinct_id,
                 **{
-                    prop.name.replace("$", ""): value for (prop, value) in props.items()
+                    prop.name.replace("$", ""): value
+                    for (prop, value) in customerio_props.items()
                 },
                 **{prop.name.replace("$", ""): value for (prop, value) in meta.items()},
             }
