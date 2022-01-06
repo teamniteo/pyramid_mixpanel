@@ -51,7 +51,7 @@ setup(
     long_description=long_description,
     license="MIT",
     long_description_content_type="text/markdown",
-    url="https://github.com/niteoweb/pyramid_mixpanel",
+    url="https://github.com/teamniteo/pyramid_mixpanel",
     author="Niteo",
     author_email="info@niteo.co",
     classifiers=[

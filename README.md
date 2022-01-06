@@ -1,13 +1,13 @@
 ## Integrate your [Pyramid](https://trypyramid.com) app with [Mixpanel](https://mixpanel.com/) to learn who your users are and how they are using your app.
 
 <p align="center">
-  <img height="200" src="https://github.com/niteoweb/pyramid_mixpanel/blob/master/header.jpg?raw=true" />
+  <img height="200" src="https://github.com/teamniteo/pyramid_mixpanel/blob/master/header.jpg?raw=true" />
 </p>
 
 <p align="center">
-  <a href="https://circleci.com/gh/niteoweb/pyramid_mixpanel">
+  <a href="https://circleci.com/gh/teamniteo/pyramid_mixpanel">
     <img alt="CircleCI for pyramid_mixpanel (master branch)"
-         src="https://circleci.com/gh/niteoweb/pyramid_mixpanel.svg?style=shield">
+         src="https://circleci.com/gh/teamniteo/pyramid_mixpanel.svg?style=shield">
   </a>
   <img alt="Test coverage (master branch)"
        src="https://img.shields.io/badge/tests_coverage-100%25-brightgreen.svg">
@@ -21,13 +21,13 @@
     <img alt="Supported Python versions"
          src="https://img.shields.io/pypi/pyversions/pyramid_mixpanel.svg">
   </a>
-  <a href="https://github.com/niteoweb/pyramid_mixpanel/blob/master/LICENSE">
+  <a href="https://github.com/teamniteo/pyramid_mixpanel/blob/master/LICENSE">
     <img alt="License: MIT"
          src="https://img.shields.io/badge/License-MIT-yellow.svg">
   </a>
-  <a href="https://github.com/niteoweb/pyramid_mixpanel/graphs/contributors">
+  <a href="https://github.com/teamniteo/pyramid_mixpanel/graphs/contributors">
     <img alt="Built by these great folks!"
-         src="https://img.shields.io/github/contributors/niteoweb/pyramid_mixpanel.svg">
+         src="https://img.shields.io/github/contributors/teamniteo/pyramid_mixpanel.svg">
   </a>
   <a href="https://webchat.freenode.net/?channels=pyramid">
     <img alt="Talk to us in #pyramid on Freenode IRC"
@@ -119,7 +119,7 @@ b) There will be differently named events for similar actions sent from differen
 
 c) Your events and properties will not be consistently named, because they will be sent from different parts of your codebase, by different authors. Your Mixpanel dashboard will feel somewhat "broken" because some events will be in past tense (`User Logged In`), some in all lowers caps (`generated invoice`), some with only the action verb (`click`) and so on.
 
-All issues outlined above are alleviated using this package because all event & property names are defined as dataclasses, in a [single source of truth](https://github.com/niteoweb/pyramid_mixpanel/blob/eb47dcaa41e1f5de4134b066b90e9530d9318de2/pyramid_mixpanel/__init__.py#L29) manner. No typos are possible once the initial specification is done. You immediately recognize bad naming patterns because all event & property names are in a single file.
+All issues outlined above are alleviated using this package because all event & property names are defined as dataclasses, in a [single source of truth](https://github.com/teamniteo/pyramid_mixpanel/blob/eb47dcaa41e1f5de4134b066b90e9530d9318de2/pyramid_mixpanel/__init__.py#L29) manner. No typos are possible once the initial specification is done. You immediately recognize bad naming patterns because all event & property names are in a single file.
 
 ## Naming best practice
 
