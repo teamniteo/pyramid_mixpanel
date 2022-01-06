@@ -1,5 +1,5 @@
 # Convenience makefile to build the dev env and run common commands
-# Based on https://github.com/niteoweb/Makefile
+# Based on https://github.com/teamniteo/Makefile
 .EXPORT_ALL_VARIABLES:
 PIPENV_VENV_IN_PROJECT = 1
 PIPENV_IGNORE_VIRTUALENVS=1
