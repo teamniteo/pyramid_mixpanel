@@ -1,5 +1,12 @@
 ## Changelog
 
+0.11 (2022-02-10)
+------------------
+
+* Support for skipping arbitrary track/profile_set calls to Customer.io.
+  [zupo]
+
+
 0.10.2 (2021-12-13)
 ------------------
 
