@@ -56,6 +56,8 @@ customerio.tracking.api_key: <secret>
 customerio.tracking.region: <eu OR us>
 ```
 
+If you want to skip sending some `track` or `profile_set` calls to Customer.io, add the `skip_customerio=True` as a function parameter.
+
 
 ## Features
 

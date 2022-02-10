@@ -206,7 +206,12 @@ class MixpanelTrack:
             self.cio = None
 
     @distinct_id_is_required
-    def track(self, event: Event, props: t.Optional[PropertiesType] = None) -> None:
+    def track(
+        self,
+        event: Event,
+        props: t.Optional[PropertiesType] = None,
+        skip_customerio: bool = False,
+    ) -> None:
         """Track a Mixpanel event."""
         if event not in self.events.__dict__.values():
             raise ValueError(f"Event '{event}' is not a member of self.events")
@@ -226,7 +231,7 @@ class MixpanelTrack:
             event.name,
             {prop.name: value for (prop, value) in props.items()},
         )
-        if self.cio:
+        if self.cio and not skip_customerio:
             msg = {
                 "customer_id": self.distinct_id,
                 "name": event.name,
@@ -244,7 +249,10 @@ class MixpanelTrack:
 
     @distinct_id_is_required
     def profile_set(
-        self, props: PropertiesType, meta: t.Optional[PropertiesType] = None
+        self,
+        props: PropertiesType,
+        meta: t.Optional[PropertiesType] = None,
+        skip_customerio: bool = False,
     ) -> None:
         """Set properties to a Profile.
 
@@ -281,7 +289,7 @@ class MixpanelTrack:
             {prop.name: value for (prop, value) in props.items()},
             {prop.name: value for (prop, value) in meta.items()},
         )
-        if self.cio:
+        if self.cio and not skip_customerio:
 
             # customer.io expects dates in unix/epoch format
             for prop, value in customerio_props.items():
