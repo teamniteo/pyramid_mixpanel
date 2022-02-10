@@ -507,7 +507,13 @@ def test_track_customerio() -> None:
         "name": "Page Viewed",
         "referrer": "https://niteo.co",  # dollar sign was removed
     }
+
+    # Test that we can skip sending data to Customer.io
     m.api._consumer.mocked_messages.clear()
+    m.track(Events.page_viewed, {}, skip_customerio=True)
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "events"
+    assert m.api._consumer.mocked_messages[0].msg["event"] == "Page Viewed"
 
 
 def test_track_guards() -> None:
@@ -601,6 +607,13 @@ def test_profile_set_customerio() -> None:
         "name": "FooBar",
         "ip": "1.1.1.1",  # dollar sign was removed
     }
+
+    # Test that we can skip sending data to Customer.io
+    m.api._consumer.mocked_messages.clear()
+    m.profile_set({ProfileProperties.dollar_name: "NoCustomerIO"}, skip_customerio=True)
+    assert len(m.api._consumer.mocked_messages) == 1
+    assert m.api._consumer.mocked_messages[0].endpoint == "people"
+    assert m.api._consumer.mocked_messages[0].msg["$set"] == {"$name": "NoCustomerIO"}
 
 
 def test_profile_set_guards() -> None:
