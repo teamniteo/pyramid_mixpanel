@@ -9,14 +9,6 @@ import json
 import typing as t
 
 
-@dataclass(frozen=True)
-class MockedMessage:
-    """A single Mixpanel message stored by MockedConsumer."""
-
-    endpoint: str
-    msg: t.Dict["str", object]
-
-
 @dataclass
 class MockedConsumer:
     """Save messages in an internal list, useful in unit testing."""
@@ -24,13 +16,33 @@ class MockedConsumer:
     # Internal storage of mocked message
     mocked_messages: t.List = field(default_factory=lambda: [])
 
+    # Drop message properties that are usually not needed in testing
+    DROP_SYSTEM_MESSAGE_PROPERTIES: bool = True
+
     # True if .flush() was called
     flushed: bool = False
 
     def send(self, endpoint: str, json_message: str) -> None:
         """Append message to the mocked_messages list."""
-        msg = MockedMessage(endpoint=endpoint, msg=json.loads(json_message))
-        self.mocked_messages.append(msg)
+        message = {
+            "endpoint": endpoint,
+            "msg": json.loads(json_message),
+        }
+
+        if self.DROP_SYSTEM_MESSAGE_PROPERTIES:
+            # Events
+            if "properties" in message["msg"]:
+                message["msg"]["properties"].pop("$insert_id", None)  # type: ignore
+                message["msg"]["properties"].pop("$lib_version", None)  # type: ignore
+                message["msg"]["properties"].pop("mp_lib", None)  # type: ignore
+                message["msg"]["properties"].pop("time", None)  # type: ignore
+                message["msg"]["properties"].pop("token", None)  # type: ignore
+            # Profiles
+            else:
+                message["msg"].pop("$token", None)
+                message["msg"].pop("$time", None)
+
+        self.mocked_messages.append(message)
 
     def flush(self, *args, **kwargs) -> None:
         """Set self.flushed to True."""

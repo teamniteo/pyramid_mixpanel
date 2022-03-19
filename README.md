@@ -67,7 +67,7 @@ If you want to skip sending some `track` or `profile_set` calls to Customer.io, 
 - Provides dataclasses for events and properties, to avoid typos.
 - You can roll your own [`Consumer`](https://mixpanel.github.io/mixpanel-python/#built-in-consumers), for example one that schedules a background task to send events, to increase request processing speed, since HTTP requests to Mixpanel are offloaded to a background task.
 - Provides a MixpanelQuery helper to use [JQL](https://mixpanel.com/jql/) to query Mixpanel for data. Some common queries like one for getting profiles by email are included.
-- In local development and unit testing, all messages are stored in `request.mixpanel.api._consumer.mocked_messages` which makes writing integration tests a breeze.
+- In local development and unit testing, all messages are stored as plain dicts in `request.mixpanel.mocked_messages`. This makes writing integration tests a breeze. By default, these dicts omit "library" properties such as `token`, `time`, `mp_lib` and similar, to make tests less verbose. If you need them, set `MockedConsumer.DROP_SYSTEM_MESSAGE_PROPERTIES` to `True`.
 - Automatically sets Mixpanel tracking `distinct_id` if `request.user` exists. Otherwise, you need to set it manually with `request.mixpanel.distinct_id = 'foo'`.
 
 
@@ -86,7 +86,7 @@ If you want to skip sending some `track` or `profile_set` calls to Customer.io, 
 
     ```ini
     # for local development and unit testing
-    # events will be stored in request.mixpanel.api._consumer.mocked_messages
+    # events will be stored in request.mixpanel.mocked_messages
     mixpanel.token = false
 
     # minimal configuration
