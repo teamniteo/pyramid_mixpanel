@@ -9,7 +9,6 @@ from pyramid.view import view_config
 from pyramid_mixpanel import EventProperties
 from pyramid_mixpanel import Events
 from pyramid_mixpanel import ProfileProperties
-from pyramid_mixpanel.consumer import MockedMessage
 from testfixtures import LogCapture
 from unittest import mock
 from webtest import TestApp
@@ -59,7 +58,6 @@ def app(settings) -> Router:
         return config.make_wsgi_app()
 
 
-@freeze_time("2019-01-01")
 @mock.patch("mixpanel.Mixpanel._make_insert_id")
 def test_MockedConsumer(_make_insert_id) -> None:
     """Test that request.mixpanel works as expected with MockedConsumer."""
@@ -92,30 +90,17 @@ def test_MockedConsumer(_make_insert_id) -> None:
 
     assert res.app_request.mixpanel.api._consumer.flushed is True
     assert res.app_request.mixpanel.api._consumer.mocked_messages == [
-        MockedMessage(
-            endpoint="people",
-            msg={
-                "$token": "testing",
-                "$time": 1546300800,
-                "$distinct_id": "foo-123",
-                "$set": {"$name": "Bob"},
-            },
-        ),
-        MockedMessage(
-            endpoint="events",
-            msg={
+        {
+            "endpoint": "people",
+            "msg": {"$distinct_id": "foo-123", "$set": {"$name": "Bob"}},
+        },
+        {
+            "endpoint": "events",
+            "msg": {
                 "event": "Page Viewed",
-                "properties": {
-                    "token": "testing",
-                    "distinct_id": "foo-123",
-                    "time": 1546300800,
-                    "$insert_id": "123e4567",
-                    "mp_lib": "python",
-                    "$lib_version": "4.9.0",
-                    "Path": "/hello",
-                },
+                "properties": {"distinct_id": "foo-123", "Path": "/hello"},
             },
-        ),
+        },
     ]
 
 
@@ -241,7 +226,6 @@ def test_PoliteBufferedConsumer(_make_insert_id) -> None:
     )
 
 
-@freeze_time("2019-01-01")
 @mock.patch("mixpanel.Mixpanel._make_insert_id")
 def test_header_event_props(_make_insert_id) -> None:
     """Test that event properties from header are added to the event."""
@@ -282,31 +266,21 @@ def test_header_event_props(_make_insert_id) -> None:
     assert res.app_request.mixpanel.api._consumer.flushed is True
 
     assert res.app_request.mixpanel.api._consumer.mocked_messages == [
-        MockedMessage(
-            endpoint="people",
-            msg={
-                "$token": "testing",
-                "$time": 1546300800,
-                "$distinct_id": "foo-123",
-                "$set": {"$name": "Bob"},
-            },
-        ),
-        MockedMessage(
-            endpoint="events",
-            msg={
+        {
+            "endpoint": "people",
+            "msg": {"$distinct_id": "foo-123", "$set": {"$name": "Bob"}},
+        },
+        {
+            "endpoint": "events",
+            "msg": {
                 "event": "Page Viewed",
                 "properties": {
-                    "token": "testing",
                     "distinct_id": "foo-123",
-                    "time": 1546300800,
-                    "$insert_id": "123e4567",
-                    "mp_lib": "python",
-                    "$lib_version": "4.9.0",
                     "Title": "hello",
                     "Path": "/hello",
                 },
             },
-        ),
+        },
     ]
 
     with LogCapture() as logs:
@@ -341,31 +315,21 @@ def test_header_event_props(_make_insert_id) -> None:
     )
     assert res.app_request.mixpanel.api._consumer.flushed is True
     assert res.app_request.mixpanel.api._consumer.mocked_messages == [
-        MockedMessage(
-            endpoint="people",
-            msg={
-                "$token": "testing",
-                "$time": 1546300800,
-                "$distinct_id": "foo-123",
-                "$set": {"$name": "Bob"},
-            },
-        ),
-        MockedMessage(
-            endpoint="events",
-            msg={
+        {
+            "endpoint": "people",
+            "msg": {"$distinct_id": "foo-123", "$set": {"$name": "Bob"}},
+        },
+        {
+            "endpoint": "events",
+            "msg": {
                 "event": "Page Viewed",
                 "properties": {
-                    "token": "testing",
                     "distinct_id": "foo-123",
-                    "time": 1546300800,
-                    "$insert_id": "123e4567",
-                    "mp_lib": "python",
-                    "$lib_version": "4.9.0",
                     "Title": "hello",
                     "Path": "/hello",
                 },
             },
-        ),
+        },
     ]
 
 

@@ -16,7 +16,6 @@ from pyramid_mixpanel import ProfileMetaProperties
 from pyramid_mixpanel import ProfileProperties
 from pyramid_mixpanel import Property
 from pyramid_mixpanel.consumer import MockedConsumer
-from pyramid_mixpanel.consumer import MockedMessage
 from pyramid_mixpanel.consumer import PoliteBufferedConsumer
 
 import typing as t
@@ -175,6 +174,9 @@ class MixpanelTrack:
         else:
             self.api = Mixpanel(token="testing", consumer=MockedConsumer())  # nosec
 
+            # shortcut for more readable test asserts
+            self.mocked_messages = self.api._consumer.mocked_messages
+
         if global_event_props:
             self.global_event_props = global_event_props
         else:
@@ -242,7 +244,7 @@ class MixpanelTrack:
 
             if self.api._consumer.__class__ == MockedConsumer:
                 self.api._consumer.mocked_messages.append(
-                    MockedMessage(endpoint="customer.io", msg=msg)
+                    {"endpoint": "customer.io", "msg": msg}
                 )
             else:
                 self.cio.track(**msg)
@@ -314,7 +316,7 @@ class MixpanelTrack:
 
             if self.api._consumer.__class__ == MockedConsumer:
                 self.api._consumer.mocked_messages.append(
-                    MockedMessage(endpoint="customer.io", msg=msg)
+                    {"endpoint": "customer.io", "msg": msg}
                 )
             else:
                 self.cio.identify(**msg)

@@ -325,7 +325,6 @@ def test_init_profile_meta_properties() -> None:
     )
 
 
-@freeze_time("2018-01-01")
 def test_track() -> None:
     """Test the track method."""
     m = MixpanelTrack(settings={}, distinct_id="foo")
@@ -333,20 +332,18 @@ def test_track() -> None:
 
     # default event
     m.track(Events.user_logged_in)
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "events"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "event": "User Logged In",
-        "properties": {
-            "token": "testing",
-            "distinct_id": "foo",
-            "time": 1514764800,  # 2018-01-01
-            "mp_lib": "python",
-            "$lib_version": "4.9.0",
-            "$insert_id": "123e4567",
-        },
-    }
-    m.api._consumer.mocked_messages.clear()
+    assert m.mocked_messages == [
+        {
+            "endpoint": "events",
+            "msg": {
+                "event": "User Logged In",
+                "properties": {
+                    "distinct_id": "foo",
+                },
+            },
+        }
+    ]
+    m.mocked_messages.clear()
 
     # default event with default properties
     m.track(
@@ -357,23 +354,21 @@ def test_track() -> None:
             EventProperties.dollar_referrer: "https://niteo.co",
         },
     )
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "events"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "event": "Page Viewed",
-        "properties": {
-            "token": "testing",
-            "distinct_id": "foo",
-            "time": 1514764800,  # 2018-01-01
-            "mp_lib": "python",
-            "$lib_version": "4.9.0",
-            "$insert_id": "123e4567",
-            "$referrer": "https://niteo.co",
-            "Path": "/about",
-            "Title": "About Us",
-        },
-    }
-    m.api._consumer.mocked_messages.clear()
+    assert m.mocked_messages == [
+        {
+            "endpoint": "events",
+            "msg": {
+                "event": "Page Viewed",
+                "properties": {
+                    "distinct_id": "foo",
+                    "Path": "/about",
+                    "Title": "About Us",
+                    "$referrer": "https://niteo.co",
+                },
+            },
+        }
+    ]
+    m.mocked_messages.clear()
 
     # custom event with custom properties
     m = MixpanelTrack(
@@ -383,24 +378,20 @@ def test_track() -> None:
         },
         distinct_id="foo",
     )
-    m.api._make_insert_id = lambda: "123e4567"  # noqa: SF01
     m.track(FooEvents.foo, {FooEventProperties.foo: "bar"})
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "events"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "event": "Foo",
-        "properties": {
-            "token": "testing",
-            "distinct_id": "foo",
-            "time": 1514764800,
-            "mp_lib": "python",
-            "$lib_version": "4.9.0",
-            "$insert_id": "123e4567",
-            "Foo": "bar",
-        },
-    }
-
-    m.api._consumer.mocked_messages.clear()
+    assert m.mocked_messages == [
+        {
+            "endpoint": "events",
+            "msg": {
+                "event": "Foo",
+                "properties": {
+                    "distinct_id": "foo",
+                    "Foo": "bar",
+                },
+            },
+        }
+    ]
+    m.mocked_messages.clear()
 
     # global event property is added to all events
     m = MixpanelTrack(
@@ -411,56 +402,27 @@ def test_track() -> None:
         distinct_id="foo",
         global_event_props={FooEventProperties.foo: "bar"},
     )
-    m.api._make_insert_id = lambda: "123e4567"  # noqa: SF01
     m.track(FooEvents.foo, {})
     m.track(FooEvents.foo, {})
     # override global event property
     m.track(FooEvents.foo, {FooEventProperties.foo: "baz"})
-    assert len(m.api._consumer.mocked_messages) == 3
-    assert m.api._consumer.mocked_messages[0].endpoint == "events"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "event": "Foo",
-        "properties": {
-            "token": "testing",
-            "distinct_id": "foo",
-            "time": 1514764800,
-            "mp_lib": "python",
-            "$lib_version": "4.9.0",
-            "$insert_id": "123e4567",
-            "Foo": "bar",
+    assert m.mocked_messages == [
+        {
+            "endpoint": "events",
+            "msg": {"event": "Foo", "properties": {"distinct_id": "foo", "Foo": "bar"}},
         },
-    }
-    assert m.api._consumer.mocked_messages[1].endpoint == "events"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "event": "Foo",
-        "properties": {
-            "token": "testing",
-            "distinct_id": "foo",
-            "time": 1514764800,
-            "mp_lib": "python",
-            "$lib_version": "4.9.0",
-            "$insert_id": "123e4567",
-            "Foo": "bar",
+        {
+            "endpoint": "events",
+            "msg": {"event": "Foo", "properties": {"distinct_id": "foo", "Foo": "bar"}},
         },
-    }
-    assert m.api._consumer.mocked_messages[2].endpoint == "events"
-    assert m.api._consumer.mocked_messages[2].msg == {
-        "event": "Foo",
-        "properties": {
-            "token": "testing",
-            "distinct_id": "foo",
-            "time": 1514764800,
-            "mp_lib": "python",
-            "$lib_version": "4.9.0",
-            "$insert_id": "123e4567",
-            "Foo": "baz",
+        {
+            "endpoint": "events",
+            "msg": {"event": "Foo", "properties": {"distinct_id": "foo", "Foo": "baz"}},
         },
-    }
-
-    m.api._consumer.mocked_messages.clear()
+    ]
+    m.mocked_messages.clear()
 
 
-@freeze_time("2018-01-01")
 def test_track_customerio() -> None:
     """Test tracking an event at Customer.io."""
 
@@ -472,7 +434,6 @@ def test_track_customerio() -> None:
         },
         distinct_id="foo",
     )
-    m.api._make_insert_id = lambda: "123e4567"  # noqa: SF01
 
     m.track(
         Events.page_viewed,
@@ -482,38 +443,40 @@ def test_track_customerio() -> None:
             EventProperties.dollar_referrer: "https://niteo.co",
         },
     )
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[0].endpoint == "events"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "event": "Page Viewed",
-        "properties": {
-            "token": "testing",
-            "distinct_id": "foo",
-            "time": 1514764800,  # 2018-01-01
-            "mp_lib": "python",
-            "$lib_version": "4.9.0",
-            "$insert_id": "123e4567",
-            "$referrer": "https://niteo.co",
-            "Path": "/about",
-            "Title": "About Us",
+    assert m.mocked_messages == [
+        {
+            "endpoint": "events",
+            "msg": {
+                "event": "Page Viewed",
+                "properties": {
+                    "distinct_id": "foo",
+                    "Path": "/about",
+                    "Title": "About Us",
+                    "$referrer": "https://niteo.co",
+                },
+            },
         },
-    }
-
-    assert m.api._consumer.mocked_messages[1].endpoint == "customer.io"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "Path": "/about",
-        "Title": "About Us",
-        "customer_id": "foo",  # this is distinct_id
-        "name": "Page Viewed",
-        "referrer": "https://niteo.co",  # dollar sign was removed
-    }
+        {
+            "endpoint": "customer.io",
+            "msg": {
+                "customer_id": "foo",
+                "name": "Page Viewed",
+                "Path": "/about",
+                "Title": "About Us",
+                "referrer": "https://niteo.co",
+            },
+        },
+    ]
+    m.mocked_messages.clear()
 
     # Test that we can skip sending data to Customer.io
-    m.api._consumer.mocked_messages.clear()
     m.track(Events.page_viewed, {}, skip_customerio=True)
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "events"
-    assert m.api._consumer.mocked_messages[0].msg["event"] == "Page Viewed"
+    assert m.mocked_messages == [
+        {
+            "endpoint": "events",
+            "msg": {"event": "Page Viewed", "properties": {"distinct_id": "foo"}},
+        }
+    ]
 
 
 def test_track_guards() -> None:
@@ -544,38 +507,43 @@ def test_track_guards() -> None:
     )
 
 
-@freeze_time("2018-01-01")
 def test_profile_set() -> None:
     """Test the profile_set method."""
     m = MixpanelTrack(settings={}, distinct_id="foo")
 
     m.profile_set({ProfileProperties.dollar_name: "FooBar"})
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$set": {"$name": "FooBar"},
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$set": {
+                    "$name": "FooBar",
+                },
+            },
+        }
+    ]
+    m.mocked_messages.clear()
 
     # with meta properties
     m.profile_set(
         {ProfileProperties.dollar_name: "FooBar2"},
         meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
     )
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[1].endpoint == "people"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$set": {"$name": "FooBar2"},
-        "$ip": "1.1.1.1",
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$set": {
+                    "$name": "FooBar2",
+                },
+                "$ip": "1.1.1.1",
+            },
+        }
+    ]
 
 
-@freeze_time("2018-01-01")
 def test_profile_set_customerio() -> None:
     """Test setting a profile property on Customer.io."""
     m = MixpanelTrack(
@@ -586,34 +554,42 @@ def test_profile_set_customerio() -> None:
         },
         distinct_id="foo",
     )
+
     m.profile_set(
         {ProfileProperties.dollar_name: "FooBar"},
         meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
     )
-
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$set": {"$name": "FooBar"},
-        "$ip": "1.1.1.1",
-    }
-
-    assert m.api._consumer.mocked_messages[1].endpoint == "customer.io"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "id": "foo",  # this is distinct_id
-        "name": "FooBar",
-        "ip": "1.1.1.1",  # dollar sign was removed
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$set": {"$name": "FooBar"},
+                "$ip": "1.1.1.1",
+            },
+        },
+        {
+            "endpoint": "customer.io",
+            "msg": {
+                "id": "foo",
+                "name": "FooBar",
+                "ip": "1.1.1.1",
+            },
+        },
+    ]
+    m.mocked_messages.clear()
 
     # Test that we can skip sending data to Customer.io
-    m.api._consumer.mocked_messages.clear()
     m.profile_set({ProfileProperties.dollar_name: "NoCustomerIO"}, skip_customerio=True)
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg["$set"] == {"$name": "NoCustomerIO"}
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$set": {"$name": "NoCustomerIO"},
+            },
+        }
+    ]
 
 
 def test_profile_set_guards() -> None:
@@ -662,55 +638,77 @@ def test_profile_set_date() -> None:
         },
         distinct_id="foo",
     )
+
     m.profile_set(
         {ProfileProperties.dollar_created: datetime(2020, 2, 2, 1, 1)},
     )
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$set": {"$created": "2020-02-02T01:01:00"},
+            },
+        },
+        {
+            "endpoint": "customer.io",
+            "msg": {
+                "id": "foo",
+                "created_at": 1580605260,
+            },
+        },
+    ]
 
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$set": {"$created": "2020-02-02T01:01:00"},
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$set": {"$created": "2020-02-02T01:01:00"},
+            },
+        },
+        {
+            "endpoint": "customer.io",
+            "msg": {"id": "foo", "created_at": 1580605260},
+        },
+    ]
 
-    assert m.api._consumer.mocked_messages[1].endpoint == "customer.io"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "id": "foo",  # this is distinct_id
-        "created_at": 1580605260,  # Sun Feb 02 2020 01:01:00
-    }
 
-
-@freeze_time("2018-01-01")
 def test_people_append() -> None:
     """Test the people_append method."""
     m = MixpanelTrack(settings={}, distinct_id="foo")
 
     m.people_append({ProfileProperties.dollar_name: "FooBar"})
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$append": {"$name": "FooBar"},
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$append": {
+                    "$name": "FooBar",
+                },
+            },
+        }
+    ]
+    m.mocked_messages.clear()
 
     # with meta properties
     m.people_append(
         {ProfileProperties.dollar_name: "FooBar2"},
         meta={ProfileMetaProperties.dollar_ip: "1.1.1.1"},
     )
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[1].endpoint == "people"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$append": {"$name": "FooBar2"},
-        "$ip": "1.1.1.1",
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$append": {
+                    "$name": "FooBar2",
+                },
+                "$ip": "1.1.1.1",
+            },
+        }
+    ]
 
 
 def test_people_append_guards() -> None:
@@ -747,35 +745,41 @@ def test_people_append_guards() -> None:
     )
 
 
-@freeze_time("2018-01-01")
 def test_people_union() -> None:
     """Test the people_union method."""
     m = MixpanelTrack(settings={}, distinct_id="foo")
 
     m.people_union({ProfileProperties.dollar_name: ["FooBar"]})
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$union": {"$name": ["FooBar"]},
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$union": {
+                    "$name": ["FooBar"],
+                },
+            },
+        }
+    ]
+    m.mocked_messages.clear()
 
     # with meta properties
     m.people_union(
         {ProfileProperties.dollar_name: ["FooBar2"]},
         meta={ProfileMetaProperties.dollar_ip: ["1.1.1.1"]},
     )
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[1].endpoint == "people"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$union": {"$name": ["FooBar2"]},
-        "$ip": ["1.1.1.1"],
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$union": {
+                    "$name": ["FooBar2"],
+                },
+                "$ip": ["1.1.1.1"],
+            },
+        }
+    ]
 
 
 def test_people_union_guards() -> None:
@@ -827,7 +831,6 @@ def test_people_union_guards() -> None:
     assert str(exc.value) == "Property 'Property(name='$ip')' value is not a list"
 
 
-@freeze_time("2018-01-01")
 def test_profile_increment() -> None:
     """Test the profile_increment method."""
     m = MixpanelTrack(
@@ -838,14 +841,15 @@ def test_profile_increment() -> None:
     )
 
     m.profile_increment(props={FooProfileProperties.foo: 1})
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$add": {"Foo": 1},
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$add": {"Foo": 1},
+            },
+        }
+    ]
 
 
 def test_profile_increment_guards() -> None:
@@ -870,7 +874,6 @@ def test_profile_increment_guards() -> None:
     )
 
 
-@freeze_time("2018-01-01")
 def test_profile_track_charge() -> None:
     """Test the profile_track_charge method."""
     m = MixpanelTrack(
@@ -881,24 +884,31 @@ def test_profile_track_charge() -> None:
     )
 
     m.profile_track_charge(100)
-    assert len(m.api._consumer.mocked_messages) == 1
-    assert m.api._consumer.mocked_messages[0].endpoint == "people"
-    assert m.api._consumer.mocked_messages[0].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$append": {"$transactions": {"$amount": 100}},
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$append": {
+                    "$transactions": {"$amount": 100},
+                },
+            },
+        }
+    ]
+    m.mocked_messages.clear()
 
     m.profile_track_charge(222, props={FooProfileProperties.foo: "Bar"})
-    assert len(m.api._consumer.mocked_messages) == 2
-    assert m.api._consumer.mocked_messages[1].endpoint == "people"
-    assert m.api._consumer.mocked_messages[1].msg == {
-        "$token": "testing",
-        "$time": 1514764800,
-        "$distinct_id": "foo",
-        "$append": {"$transactions": {"Foo": "Bar", "$amount": 222}},
-    }
+    assert m.mocked_messages == [
+        {
+            "endpoint": "people",
+            "msg": {
+                "$distinct_id": "foo",
+                "$append": {
+                    "$transactions": {"Foo": "Bar", "$amount": 222},
+                },
+            },
+        }
+    ]
 
 
 def test_profile_track_charge_guards() -> None:
