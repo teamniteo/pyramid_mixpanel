@@ -1,5 +1,13 @@
 ## Changelog
 
+0.12.0 (2022-03-22)
+-------------------
+
+* Overhauled testing support for more readable asserts. This is a breaking
+  change for existing test cases.
+  [zupo]
+
+
 0.11.0 (2022-02-10)
 -------------------
 
