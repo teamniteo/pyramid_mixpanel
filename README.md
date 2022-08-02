@@ -157,4 +157,3 @@ A couple of projects that use pyramid_mixpanel in production:
 - [WooCart](https://woocart.com) - Managed WooCommerce service.
 - [EasyBlogNetworks](https://easyblognetworks.com) - PBN hosting and autopilot maintenance.
 - [Kafkai](https://kafkai.com) - AI generated content.
-- [Docsy](https://docsy.org/) - Faceted search for private projects and teams.
