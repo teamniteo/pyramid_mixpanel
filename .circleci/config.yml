@@ -62,7 +62,7 @@ jobs:
       - run:
           name: Upload results to blueracer.io
           command: |
-            nix-shell -p bash curl git --run "bash <(curl -s https://app.blueracer.io/upload)"
+            bash <(curl -s https://app.blueracer.io/upload)
   release:
     <<: *defaults
 
