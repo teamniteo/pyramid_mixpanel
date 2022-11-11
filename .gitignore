@@ -110,6 +110,7 @@ Readme.html
 cov.xml
 htmltypecov/
 typecov/
+junit.xml
 
 # `make install` flag
 .installed
