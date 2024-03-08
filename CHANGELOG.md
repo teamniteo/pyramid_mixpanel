@@ -1,5 +1,15 @@
 ## Changelog
 
+0.13.0 (2024-03-08)
+-------------------
+
+* MixpanelQuery.profile_by_email raises a custom exception called
+  `MultipleProfilesFoundException` when multiple profiles are found for a given email.
+  The exception contains the email and all profiles found so that clients can handle
+  the exception as needed.
+  [karantan]
+
+
 0.12.0 (2022-03-22)
 -------------------
 
