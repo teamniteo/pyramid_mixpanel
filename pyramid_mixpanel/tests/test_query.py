@@ -21,6 +21,8 @@ def test_zero_results() -> None:
 @responses.activate
 def test_too_many_results() -> None:
     """Raise exception if more than one profiles found."""
+    from pyramid_mixpanel.query import MultipleProfilesFoundException
+
     responses.add(
         responses.POST,
         "https://mixpanel.com/api/2.0/jql",
@@ -31,12 +33,12 @@ def test_too_many_results() -> None:
         status=200,
     )
 
-    with pytest.raises(ValueError) as cm:
+    with pytest.raises(MultipleProfilesFoundException) as cm:
         MixpanelQuery(SETTINGS).profile_by_email("foo@bar.com")
 
     assert (
         str(cm.value)
-        == "Found more than one Profile for email 'foo@bar.com': ['one', 'two']"
+        == "Multiple Mixpanel profiles found for email: foo@bar.com - Profile IDs: [{'distinct_id': 'one', 'email': 'foo@bar.com'}, {'distinct_id': 'two', 'email': 'foo@bar.com'}]"
     )
 
 

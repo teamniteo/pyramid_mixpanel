@@ -4,6 +4,19 @@ import requests
 import typing as t
 
 
+class MultipleProfilesFoundException(ValueError):
+    """Custom exception for multiple profiles."""
+
+    def __init__(self, email, profile_ids):
+        super().__init__(f"Multiple Mixpanel profiles found for email: {email}")
+        self.email = email
+        self.profile_ids = profile_ids
+
+    def __str__(self):
+        """Stringer method."""
+        return f"{super().__str__()} - Profile IDs: {self.profile_ids}"
+
+
 class MixpanelQuery(object):
     """Query Mixpanel for events and profiles.
 
@@ -59,7 +72,4 @@ class MixpanelQuery(object):
         elif len(profiles) == 1:
             return profiles[0]
         else:
-            raise ValueError(
-                f"Found more than one Profile for email '{email}': "
-                f"{[profile['distinct_id'] for profile in profiles]}"
-            )
+            raise MultipleProfilesFoundException(email, profiles)
